@@ -13,36 +13,35 @@ const { default: mongoose } = require("mongoose");
 //   }
 // };
 
-// exports.login = async (req, res) => {
-//   try {
-//     const { email, password } = req.body;
-//     const foundUser = await User.findOne({ email });
-//     if (!foundUser)
-//       return res.status(401).send({ message: "Invalid credentials" });
-//     if (foundUser.status === true)
-//       return res.status(401).send({ message: "You are blocked" });
+exports.login = async (req, res) => {
+  try {
+    const { email, password } = req.body;
+    const foundUser = await User.findOne({ email });
+    if (!foundUser)
+      return res.status(401).send({ message: "Invalid credentials" });
 
-//     const passwordMatch = await bcrypt.compare(password, foundUser.password);
-//     if (!passwordMatch)
-//       return res.status(401).send({ message: "Invalid credentials" });
+    const passwordMatch = await bcrypt.compare(password, foundUser.password);
+    if (!passwordMatch)
+      return res.status(401).send({ message: "Invalid credentials" });
 
-//     await User.updateOne({ email }, { lastLogin: Date.now() });
+    await User.updateOne({ email }, { lastLogin: Date.now() });
 
-//     const accessToken = generateToken(
-//       {
-//         email: foundUser.email,
-//         _id: foundUser._id,
-//         status: foundUser.status,
-//         name: foundUser.name,
-//       },
-//       "1h"
-//     );
+    const accessToken = generateToken(
+      {
+        email: foundUser.email,
+        _id: foundUser._id,
+        status: foundUser.status,
+        name: foundUser.name,
+        role:foundUser.role
+      },
+      "1h"
+    );
 
-//     return res.send({ accessToken });
-//   } catch (_) {
-//     return res.status(400).send({ message: "Something is wrong" });
-//   }
-// };
+    return res.send({ accessToken });
+  } catch (_) {
+    return res.status(400).send({ message: "Something is wrong" });
+  }
+};
 
 exports.registration = async (req, res) => {
   try {

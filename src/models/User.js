@@ -1,4 +1,13 @@
 const mongoose = require("mongoose");
+
+const UserSchemaShort = new mongoose.Schema(
+  {
+    name: { type: String, minlength: 1, required: true },
+  },
+  { versionKey: false }
+);
+
+
 const UserSchema = new mongoose.Schema(
   {
     name: { type: String, minlength: 1, required: true },
@@ -10,4 +19,4 @@ const UserSchema = new mongoose.Schema(
   { versionKey: false }
 );
 const User = mongoose.model("User", UserSchema);
-module.exports = { User, UserSchema };
+module.exports = { User, UserSchema, UserSchemaShort };
