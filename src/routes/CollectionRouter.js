@@ -6,7 +6,10 @@ router
   .route("/")
   .get(CollectionController.getAllCollections)
   .post([verifyToken], CollectionController.create)
-  .delete(CollectionController.delete)
-  .patch(CollectionController.update)
+  .delete([verifyToken], CollectionController.delete)
+
+  router
+  .route("/:id")
+  .patch([verifyToken], CollectionController.update)
 
 module.exports = router;

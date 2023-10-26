@@ -6,7 +6,7 @@ exports.getAllCollections = async (req, res) => {
     const collections = await UserCollection.find();
     return res.send({ collections });
   } catch (_) {
-    return res.status(400).send({ message: "Something went wrong" });
+    return res.status(400).send({ message: "Something went wrong while getting all collections" });
   }
 };
 
@@ -17,43 +17,44 @@ exports.create = async (req, res) => {
       userId: req.user._id,
     });
     return res.send(newCollection);
-  } catch (_) {
-    return res.status(400).send({ message: "Something is wrong" });
+  } catch (e) {
+    if (e.code === 11000) {
+      return res.status(400).send({ message: "A collection with this name already exists. Please choose another name." });
+    }
+    return res.status(400).send({ message: "Something went wrong while creating the collection" });
   }
 };
 
 exports.delete = async (req, res) => {
   try {
-    const ObjectId = mongoose.Types.ObjectId;
     const { idsToDelete } = req.body;
-    const convertedIds = idsToDelete.map((id) => new ObjectId(id));
-
     const { deletedCount } = await UserCollection.deleteMany({
-      _id: { $in: convertedIds },
+      _id: { $in: idsToDelete },
     });
     if (!deletedCount)
       return res.status(404).send({ message: "Users is not found" });
     return res.send({ message: "Users successfully deleted" });
   } catch (_) {
-    return res.status(400).send({ message: "Something is wrong" });
+    return res.status(400).send({ message: "Something went wrong while deleting the collection" });
   }
 };
 
 exports.update = async (req, res) => {
+  const collectionId = req.params.id;
   try {
-    const ObjectId = mongoose.Types.ObjectId;
-    const { id, name, description } = req.body;
-    const convertedId = new ObjectId(id);
+    const { name, description } = req.body;
     await UserCollection.updateOne(
       {
-        _id: { $in: convertedId },
+        _id: { $in: collectionId },
       },
       { $set: { name, description } }
     );
 
     return res.send({ message: "Users successfully updated" });
   } catch (e) {
-    console.log(e);
-    return res.status(400).send({ message: "Something is wrong" });
+    if (e.code === 11000) {
+      return res.status(400).send({ message: "A collection with this name already exists. Please choose another name." });
+    }
+    return res.status(400).send({ message: "Something went wrong while updating the collection" });
   }
 };

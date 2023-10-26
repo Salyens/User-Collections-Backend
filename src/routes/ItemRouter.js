@@ -1,14 +1,18 @@
 const router = require("express").Router();
 const ItemController = require("../controllers/ItemController");
+const itemValidation = require("../middlewares/item/itemValidation");
+const tagsValidation = require("../middlewares/item/tagsValidation");
 const verifyToken = require("../middlewares/verifyToken");
 
-router.post("/",[verifyToken], ItemController.create);
+router
+  .route("/")
+  .get([verifyToken], ItemController.getAllItems)
+  .post([verifyToken, itemValidation, tagsValidation], ItemController.create)
+  .delete([verifyToken], ItemController.delete)
 
-// router
-//   .route("/")
-//   .get(CollectionController.getAllCollections)
-//   .post(CollectionController.create)
-//   .delete(CollectionController.delete)
-//   .patch(CollectionController.update)
+  router
+  .route("/:id")
+  .patch([verifyToken], ItemController.update)
+
 
 module.exports = router;

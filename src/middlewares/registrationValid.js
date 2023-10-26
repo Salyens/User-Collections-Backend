@@ -1,18 +1,27 @@
-const validator = require("validator");
-const { validEmail, validPassword } = require("../utils/validations");
+const { check, validationResult } = require("express-validator");
 
-const registrationValid = (req, res, next) => {
-  const errors = [];
-  const { name, email, password } = req.body;
+const registrationValidations = [
+  check("email").isEmail().withMessage("Enter a valid email"),
+  check("name").notEmpty().withMessage("Name cannot be empty"),
+  check("password")
+    .isLength({ min: 6 })
+    .withMessage("Password must be at least 6 characters")
+    .matches(/\d/)
+    .withMessage("Password must contain at least one digit")
+    .matches(/[A-Za-z]/)
+    .withMessage("Password must contain at least one letter")
+    .matches(/\W/)
+    .withMessage("Password must contain at least one special character"),
+];
 
-  if (!name || !email || !password)
-    return res.status(422).send({ message: "All fields are required" });
+const handleValidationResult = (req, res, next) => {
+  const errors = validationResult(req);
 
-  if (!validEmail(email)) errors.push("Invalid email");
-  if (!validPassword(password)) errors.push("Invalid password");
-
-  if (errors.length) return res.status(422).send({ message: errors });
+  if (!errors.isEmpty()) {
+    const errorMessages = errors.array().map((err) => err.msg);
+    return res.status(422).json({ errors: errorMessages });
+  }
   return next();
 };
 
-module.exports = registrationValid;
+module.exports = [...registrationValidations, handleValidationResult];

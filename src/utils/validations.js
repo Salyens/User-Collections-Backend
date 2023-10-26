@@ -1,18 +1,17 @@
-const validator = require("validator");
+// const { check } = require("express-validator");
 
-// const validName = (name) => {
-//     const regex = new RegExp(/^[a-z]+ [a-z]+$/i);
-//     return regex.test(name);
-//   };
-  
-  const validEmail = (email) => validator.isEmail(email)
+// const registrationValidations = () => [
+//   check("email").isEmail().withMessage("Enter a valid email"),
+//   check("name").notEmpty().withMessage("Name cannot be empty"),
+//   check("password")
+//     .isLength({ min: 6 })
+//     .withMessage("Password must be at least 6 characters")
+//     .matches(/\d/)
+//     .withMessage("Password must contain at least one digit")
+//     .matches(/[A-Za-z]/)
+//     .withMessage("Password must contain at least one letter")
+//     .matches(/\W/)
+//     .withMessage("Password must contain at least one special character"),
+// ];
 
-  const validPassword = (password) => {
-    const regex = new RegExp(
-      /^(?=.*[0-9])(?=.*[A-Z])(?=.*[!@#$%^&*])([A-Za-z0-9!@#$%^&*]{8,})$/
-    );
-    return regex.test(password);
-  };
-  
-  module.exports = { validEmail, validPassword };
-  
+// module.exports = registrationValidations;

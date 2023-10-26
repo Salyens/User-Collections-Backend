@@ -18,11 +18,11 @@ exports.login = async (req, res) => {
     const { email, password } = req.body;
     const foundUser = await User.findOne({ email });
     if (!foundUser)
-      return res.status(401).send({ message: "Invalid credentials" });
+      return res.status(401).send({ message: "Invalid email or password" });
 
     const passwordMatch = await bcrypt.compare(password, foundUser.password);
     if (!passwordMatch)
-      return res.status(401).send({ message: "Invalid credentials" });
+      return res.status(401).send({ message: "Invalid email or password" });
 
     await User.updateOne({ email }, { lastLogin: Date.now() });
 
@@ -39,7 +39,7 @@ exports.login = async (req, res) => {
 
     return res.send({ accessToken });
   } catch (_) {
-    return res.status(400).send({ message: "Something is wrong" });
+    return res.status(400).send({ message: "Something went wrong while processing the login request" });
   }
 };
 
@@ -52,32 +52,13 @@ exports.registration = async (req, res) => {
     const accessToken = generateToken({ email, _id: newUser._id, name, role }, "1h");
     return res.send({ accessToken });
   } catch (e) {
-    console.log(e);
     if (e.code === 11000) {
       return res.status(400).send({ message: "Email already exists" });
     }
-    return res.status(400).send({ message: "Something is wrong" });
+    return res.status(400).send({ message: "Something went wrong during registration" });
   }
 };
 
-// exports.delete = async (req, res) => {
-//   try {
-//     const ObjectId = mongoose.Types.ObjectId;
-//     const { idsToDelete } = req.body;
-//     const convertedIds = idsToDelete.map((id) => new ObjectId(id));
-
-//     const { deletedCount } = await User.deleteMany({
-//       _id: { $in: convertedIds },
-//     });
-//     if (!deletedCount)
-//       return res
-//         .status(404)
-//         .send({ message: "Users is not found" });
-//     return res.send({ message: "Users successfully deleted" });
-//   } catch (_) {
-//     return res.status(400).send({ message: "Something is wrong" });
-//   }
-// };
 
 // exports.update = async (req, res) => {
 //   try {
