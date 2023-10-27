@@ -2,9 +2,14 @@ const mongoose = require("mongoose");
 
 const TagsSchema = new mongoose.Schema(
   {
-    name: { type: Array, minlength: 1, required: true, unique: true },
+    tags: {
+      type: Map,
+      of: Number,
+      default: {}
+    },
   },
   { versionKey: false }
 );
+
 const Tags = mongoose.model("Tags", TagsSchema);
 module.exports = { Tags, TagsSchema };

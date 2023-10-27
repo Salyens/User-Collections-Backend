@@ -6,7 +6,7 @@ const verifyToken = require("../middlewares/verifyToken");
 
 router
   .route("/")
-  .get([verifyToken], ItemController.getAllItems)
+  .get(ItemController.getAllItems)
   .post([verifyToken, itemValidation, tagsValidation], ItemController.create)
   .delete([verifyToken], ItemController.delete)
 

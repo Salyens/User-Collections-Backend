@@ -6,8 +6,15 @@ const { Tags } = require("../models/Tags");
 
 exports.getAllItems = async (req, res) => {
   try {
-    const userItems = await UserItem.find();
-    return res.send({ userItems });
+    const { page = 1, limit = 10, sortBy = "_id", sortDir = -1 } = req.query;
+    const pageChunk = (page - 1) * limit;
+    const total = await UserItem.countDocuments();
+
+    const userItems = await UserItem.find()
+      .skip(pageChunk)
+      .limit(limit)
+      .sort({ [sortBy]: [sortDir] });
+    return res.send({ userItems, total });
   } catch (_) {
     return res
       .status(400)
@@ -37,12 +44,10 @@ exports.create = async (req, res) => {
     return res.send(newItem);
   } catch (e) {
     if (e.code === 11000) {
-      return res
-        .status(400)
-        .send({
-          message:
-            "A collection with this name already exists. Please choose another name.",
-        });
+      return res.status(400).send({
+        message:
+          "A collection with this name already exists. Please choose another name.",
+      });
     }
     return res
       .status(400)

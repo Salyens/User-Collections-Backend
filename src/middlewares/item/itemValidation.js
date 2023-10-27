@@ -10,7 +10,9 @@ const itemValidation = (req, res, next) => {
   isValid("tags", tags);
 
   if (errors.length) return res.status(400).send({ message: errors });
-  next();
+  return next();
 };
+
+
 
 module.exports = itemValidation;

@@ -10,6 +10,7 @@ const UserItemSchema = new mongoose.Schema(
     tags: { type: Array, minlength: 1, required: true },
     comments: {type: Array, default: [], required: true},
     likes: { type: Array, default: [], required: true },
+    createdDate:{ type: Object, required: true, default: Date.now }
   },
   { versionKey: false }
 );
