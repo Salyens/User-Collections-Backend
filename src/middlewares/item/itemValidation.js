@@ -1,18 +1,17 @@
+const isEmpty = require("../../helper/isEmpty");
+
 const itemValidation = (req, res, next) => {
   const { name, collectionId, tags } = req.body;
-  const errors = [];
-
-  const isValid = (fieldName, value) => {
-    if (!value || !value.length) errors.push(`The '${fieldName}' is required`);
+  const fields = {
+    name,
+    collection: collectionId,
+    tags,
   };
-  isValid("name", name);
-  isValid("collection", collectionId);
-  isValid("tags", tags);
+
+  const errors = isEmpty(fields, "item");
 
   if (errors.length) return res.status(400).send({ message: errors });
   return next();
 };
-
-
 
 module.exports = itemValidation;

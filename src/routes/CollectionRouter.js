@@ -1,6 +1,7 @@
 const router = require("express").Router();
 const CollectionController = require("../controllers/CollectionController");
 const createCollection = require("../middlewares/collection/createCollection");
+const updateCollection = require("../middlewares/collection/updateCollection");
 const verifyToken = require("../middlewares/verifyToken");
 
 router
@@ -11,6 +12,6 @@ router
 
   router
   .route("/:id")
-  .patch([verifyToken], CollectionController.update)
+  .patch([verifyToken, updateCollection], CollectionController.update)
 
 module.exports = router;

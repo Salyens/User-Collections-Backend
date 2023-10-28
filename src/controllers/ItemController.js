@@ -3,10 +3,11 @@ const { default: mongoose } = require("mongoose");
 const { UserCollection } = require("../models/UserCollection");
 const { UserItem } = require("../models/UserItem");
 const { Tags } = require("../models/Tags");
+const removeLeadingHashes = require("../helper/removeLeadingHashes");
 
 exports.getAllItems = async (req, res) => {
   try {
-    const { page = 1, limit = 10, sortBy = "_id", sortDir = -1 } = req.query;
+    const { page = 1, limit = 10, sortBy = "createdDate", sortDir = -1 } = req.query;
     const pageChunk = (page - 1) * limit;
     const total = await UserItem.countDocuments();
 
@@ -26,6 +27,7 @@ exports.create = async (req, res) => {
   try {
     const { _id, name } = req.user;
     const { name: itemName, imgURL, tags, collectionId } = req.body;
+    const trimmedTags = removeLeadingHashes(tags);
     const userCollection = await UserCollection.findById(collectionId);
 
     if (!userCollection)
@@ -34,13 +36,13 @@ exports.create = async (req, res) => {
     const wholeItemInfo = {
       name: itemName,
       imgURL,
-      tags,
+      trimmedTags,
       collectionName: userCollection.name,
       user: { _id, name },
     };
 
     const newItem = await UserItem.create(wholeItemInfo);
-    createNewTags(tags);
+    createNewTags(trimmedTags);
     return res.send(newItem);
   } catch (e) {
     if (e.code === 11000) {
@@ -82,12 +84,13 @@ exports.update = async (req, res) => {
   try {
     const itemId = req.params.id;
     const { name, imgURL, tags } = req.body;
+    const trimmedTags = removeLeadingHashes(tags);
 
     await UserItem.updateOne(
       {
         _id: { $in: itemId },
       },
-      { $set: { name, imgURL, tags } }
+      { $set: { name, imgURL, tags:trimmedTags } }
     );
 
     return res.send({ message: "Item successfully updated" });

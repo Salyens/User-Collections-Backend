@@ -1,15 +1,10 @@
+const isEmpty = require("../../helper/isEmpty");
+
 const createCollection = (req, res, next) => {
-  const {
-    body: { name, description },
-  } = req;
-  const errors = [];
+  const { name, description } = req.body;
+  const fields = { name, description };
 
-  const checkValue = (valueName, value) => {
-    if (!value || !value.trim()) errors.push(`Invalid ${valueName}`);
-  };
-
-  checkValue("collection name", name);
-  checkValue("collection description", description);
+  const errors = isEmpty(fields, "collection");
 
   if (errors.length) {
     return res.status(400).send({ errors });

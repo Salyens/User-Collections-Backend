@@ -1,7 +1,7 @@
 const tagsValidation = (req, res, next) => {
   const { tags } = req.body;
 
-  if (!Array.isArray(tags)) {
+  if (!Array.isArray(tags) || !tags.length) {
     return res
       .status(400)
       .send({ message: "The 'tags' field should be a list of tags." });
