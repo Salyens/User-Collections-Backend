@@ -1,14 +1,10 @@
-const isEmpty = require("../../helper/isEmpty");
+const generateValidationMiddleware = require("../middlewareHelper/generateValidationMiddleware");
 
-const createCollection = (req, res, next) => {
-  const { name, description } = req.body;
-  const fields = { name, description };
+const fields = [{ name: "name" }, { name: "description" }];
 
-  const errors = isEmpty(fields, "collection");
+const createCollection = generateValidationMiddleware(
+  fields,
+  "collection"
+);
 
-  if (errors.length) {
-    return res.status(400).send({ errors });
-  }
-  return next();
-};
 module.exports = createCollection;

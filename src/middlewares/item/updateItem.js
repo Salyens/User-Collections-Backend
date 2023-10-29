@@ -1,11 +1,11 @@
-const isExist = require("../../helper/isExist");
+const generateValidationMiddleware = require("../middlewareHelper/generateValidationMiddleware");
 
-const updateItem = (req, res, next) => {
-  const errors = isExist(req.body, "item");
+const fields = [
+  { name: "name", optional: true },
+  { name: "collectionId", optional: true },
+  { name: "tags", optional: true },
+];
 
-  if (errors.length) {
-    return res.status(400).send({ errors });
-  }
-  return next();
-};
+const updateItem = generateValidationMiddleware(fields, "item");
+
 module.exports = updateItem;

@@ -3,7 +3,7 @@ const { default: mongoose } = require("mongoose");
 const { UserCollection } = require("../models/UserCollection");
 const { UserItem } = require("../models/UserItem");
 const { Tags } = require("../models/Tags");
-const removeLeadingHashes = require("../helper/removeLeadingHashes");
+const removeLeadingHashes = require("../helpers/removeLeadingHashes");
 
 exports.getAllItems = async (req, res) => {
   try {

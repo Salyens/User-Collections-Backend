@@ -1,19 +1,21 @@
 const router = require("express").Router();
 const ItemController = require("../controllers/ItemController");
-const itemValidation = require("../middlewares/item/itemValidation");
-const tagsValidation = require("../middlewares/item/tagsValidation");
-const updateItem = require("../middlewares/item/updateItem");
-const verifyToken = require("../middlewares/verifyToken");
+const { verifyToken } = require("../middlewares/auth");
+const { createItem } = require("../middlewares/item");
+const { tagsValidation } = require("../middlewares/item");
+const { updateItem } = require("../middlewares/item");
 
 router
   .route("/")
   .get(ItemController.getAllItems)
-  .post([verifyToken, itemValidation, tagsValidation], ItemController.create)
-  .delete([verifyToken], ItemController.delete)
+  .post([verifyToken, createItem, tagsValidation], ItemController.create)
+  .delete([verifyToken], ItemController.delete);
 
-  router
+router
   .route("/:id")
-  .patch([verifyToken, updateItem, tagsValidation, tagsValidation], ItemController.update)
-
+  .patch(
+    [verifyToken, updateItem, tagsValidation, tagsValidation],
+    ItemController.update
+  );
 
 module.exports = router;
