@@ -1,13 +1,21 @@
 const { default: mongoose } = require("mongoose");
-
 const { UserCollection } = require("../models/UserCollection");
 const { UserItem } = require("../models/UserItem");
-const { Tags } = require("../models/Tags");
-const removeLeadingHashes = require("../helpers/removeLeadingHashes");
+const {
+  removeLeadingHashes,
+  incrementTagCounts,
+  decrementTagCounts,
+} = require("../helpers");
+const compareTags = require("../helpers/compareTags");
 
 exports.getAllItems = async (req, res) => {
   try {
-    const { page = 1, limit = 10, sortBy = "createdDate", sortDir = -1 } = req.query;
+    const {
+      page = 1,
+      limit = 10,
+      sortBy = "createdDate",
+      sortDir = -1,
+    } = req.query;
     const pageChunk = (page - 1) * limit;
     const total = await UserItem.countDocuments();
 
@@ -36,13 +44,18 @@ exports.create = async (req, res) => {
     const wholeItemInfo = {
       name: itemName,
       imgURL,
-      trimmedTags,
+      tags: trimmedTags,
       collectionName: userCollection.name,
       user: { _id, name },
     };
 
     const newItem = await UserItem.create(wholeItemInfo);
-    createNewTags(trimmedTags);
+    const addedTags = await incrementTagCounts(trimmedTags);
+    if (!addedTags.success)
+      return res
+        .status(400)
+        .send({ message: "Something went wrong while added the tags" });
+
     return res.send(newItem);
   } catch (e) {
     if (e.code === 11000) {
@@ -55,13 +68,6 @@ exports.create = async (req, res) => {
       .status(400)
       .send({ message: "Something went wrong while creating the collection" });
   }
-};
-
-const createNewTags = async (tags) => {
-  try {
-    const tagsCollection = tags.map((tag) => ({ name: tag }));
-    await Tags.insertMany(tagsCollection, { ordered: false });
-  } catch (e) {}
 };
 
 exports.delete = async (req, res) => {
@@ -86,17 +92,29 @@ exports.update = async (req, res) => {
     const { name, imgURL, tags } = req.body;
     const trimmedTags = removeLeadingHashes(tags);
 
-    await UserItem.updateOne(
-      {
-        _id: { $in: itemId },
-      },
-      { $set: { name, imgURL, tags:trimmedTags } }
-    );
+    const itemToUpdate = await UserItem.findOne({ _id: itemId });
+
+    if (!itemToUpdate) {
+      return res.status(404).send({ message: "Item not found" });
+    }
+
+    const { toAdd, toRemove } = compareTags(itemToUpdate.tags, trimmedTags);
+    incrementTagCounts(toAdd);
+    decrementTagCounts(toRemove);
+
+    itemToUpdate.name = name;
+    itemToUpdate.imgURL = imgURL;
+    itemToUpdate.tags = trimmedTags;
+
+    await itemToUpdate.save();
 
     return res.send({ message: "Item successfully updated" });
-  } catch (_) {
+  } catch (error) {
     return res
       .status(400)
-      .send({ message: "Something went wrong while updating the item" });
+      .send({
+        message: "Something went wrong while updating the item",
+        error: error.message,
+      });
   }
 };
