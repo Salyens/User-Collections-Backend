@@ -49,13 +49,13 @@ exports.create = async (req, res) => {
       user: { _id, name },
     };
 
-    const newItem = await UserItem.create(wholeItemInfo);
     const addedTags = await incrementTagCounts(trimmedTags);
-    if (!addedTags.success)
+    if (!addedTags)
       return res
         .status(400)
-        .send({ message: "Something went wrong while added the tags" });
+        .send({ message: "Something went wrong while adding the tags" });
 
+    const newItem = await UserItem.create(wholeItemInfo);
     return res.send(newItem);
   } catch (e) {
     if (e.code === 11000) {
@@ -73,11 +73,26 @@ exports.create = async (req, res) => {
 exports.delete = async (req, res) => {
   try {
     const { idsToDelete } = req.body;
+
+    const itemsToDelete = await UserItem.find(
+      { _id: { $in: idsToDelete } },
+      { tags: 1, _id: 0 }
+    );
+
+    const tags = [];
+    itemsToDelete.forEach((item) => {
+      tags.push(...item.tags)
+    })
+
     const { deletedCount } = await UserItem.deleteMany({
       _id: { $in: idsToDelete },
     });
+
     if (!deletedCount)
       return res.status(404).send({ message: "Item is not found" });
+
+    decrementTagCounts(tags)
+    
     return res.send({ message: "Item successfully deleted" });
   } catch (_) {
     return res
@@ -110,11 +125,9 @@ exports.update = async (req, res) => {
 
     return res.send({ message: "Item successfully updated" });
   } catch (error) {
-    return res
-      .status(400)
-      .send({
-        message: "Something went wrong while updating the item",
-        error: error.message,
-      });
+    return res.status(400).send({
+      message: "Something went wrong while updating the item",
+      error: error.message,
+    });
   }
 };

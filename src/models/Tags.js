@@ -3,9 +3,7 @@ const mongoose = require("mongoose");
 const TagsSchema = new mongoose.Schema(
   {
     tags: {
-      type: Map,
-      of: Number,
-      default: {}
+      type: mongoose.Schema.Types.Mixed
     },
   },
   { versionKey: false }
