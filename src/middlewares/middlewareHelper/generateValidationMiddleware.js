@@ -1,6 +1,6 @@
 const { check, validationResult } = require('express-validator');
 
-function generateValidationMiddleware(fields, unit) {
+const generateValidationMiddleware = (fields, unit) => {
     const fieldChecks = fields.map(field => {
         if (field.optional) {
             return check(field.name)

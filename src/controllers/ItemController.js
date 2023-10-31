@@ -13,7 +13,7 @@ exports.getAllItems = async (req, res) => {
     const {
       page = 1,
       limit = 10,
-      sortBy = "createdDate",
+      sortBy = "_id",
       sortDir = -1,
     } = req.query;
     const pageChunk = (page - 1) * limit;
@@ -23,6 +23,7 @@ exports.getAllItems = async (req, res) => {
       .skip(pageChunk)
       .limit(limit)
       .sort({ [sortBy]: [sortDir] });
+
     return res.send({ userItems, total });
   } catch (_) {
     return res
@@ -42,7 +43,7 @@ exports.create = async (req, res) => {
       return res.status(404).send({ message: "Collection is not found" });
 
     const wholeItemInfo = {
-      name: itemName,
+      name: itemName.trim(),
       imgURL,
       tags: trimmedTags,
       collectionName: userCollection.name,
@@ -61,12 +62,12 @@ exports.create = async (req, res) => {
     if (e.code === 11000) {
       return res.status(400).send({
         message:
-          "A collection with this name already exists. Please choose another name.",
+          "An item with this name already exists. Please choose another name.",
       });
     }
     return res
       .status(400)
-      .send({ message: "Something went wrong while creating the collection" });
+      .send({ message: "Something went wrong while creating the item" });
   }
 };
 
@@ -110,14 +111,14 @@ exports.update = async (req, res) => {
     const itemToUpdate = await UserItem.findOne({ _id: itemId });
 
     if (!itemToUpdate) {
-      return res.status(404).send({ message: "Item not found" });
+      return res.status(404).send({ message: "Item is not found" });
     }
 
     const { toAdd, toRemove } = compareTags(itemToUpdate.tags, trimmedTags);
     incrementTagCounts(toAdd);
     decrementTagCounts(toRemove);
 
-    itemToUpdate.name = name;
+    itemToUpdate.name = name.trim();
     itemToUpdate.imgURL = imgURL;
     itemToUpdate.tags = trimmedTags;
 

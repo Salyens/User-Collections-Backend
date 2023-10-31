@@ -6,7 +6,7 @@ const { updateCollection } = require("../middlewares/collection");
 
 router
   .route("/")
-  .get(CollectionController.getAllCollections)
+  .get(CollectionController.getTopCollections)
   .post([verifyToken, createCollection], CollectionController.create)
   .delete([verifyToken], CollectionController.delete);
 
