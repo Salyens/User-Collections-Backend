@@ -19,7 +19,7 @@ const handleValidationResult = (req, res, next) => {
 
   if (!errors.isEmpty()) {
     const errorMessages = errors.array().map((err) => err.msg);
-    return res.status(422).json({ errors: errorMessages });
+    return res.status(422).json({ message: errorMessages });
   }
   return next();
 };

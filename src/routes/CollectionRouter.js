@@ -10,6 +10,10 @@ router
   .post([verifyToken, createCollection], CollectionController.create)
   .delete([verifyToken], CollectionController.delete);
 
+  router
+  .route("/all")
+  .get(CollectionController.getAllCollections)
+
 router
   .route("/:id")
   .patch([verifyToken, updateCollection], CollectionController.update);

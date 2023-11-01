@@ -12,7 +12,7 @@ exports.getAllItems = async (req, res) => {
   try {
     const {
       page = 1,
-      limit = 10,
+      limit = 12,
       sortBy = "_id",
       sortDir = -1,
     } = req.query;
