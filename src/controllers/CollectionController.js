@@ -5,7 +5,7 @@ const getBiggestCollections = require("../helpers/getBiggestCollections");
 
 exports.getAllCollections = async (req, res) => {
   try {
-    const { page = 1, limit = 2, sortBy = "_id", sortDir = -1 } = req.query;
+    const { page = 1, limit = 6, sortBy = "_id", sortDir = -1 } = req.query;
     const pageChunk = (page - 1) * limit;
     const total = await UserCollection.countDocuments();
 
@@ -29,12 +29,12 @@ exports.getTopCollections = async (req, res) => {
     const fetchedCollections = await UserCollection.find({
       name: { $in: topCollectionList },
     });
-    const topCollections = fetchedCollections.sort((a, b) => {
+    const collections = fetchedCollections.sort((a, b) => {
       return (
         topCollectionList.indexOf(a.name) - topCollectionList.indexOf(b.name)
       );
     });
-    return res.send(topCollections);
+    return res.send({collections});
   } catch (_) {
     return res.status(400).send({
       message: "Something went wrong while getting the top collections",
