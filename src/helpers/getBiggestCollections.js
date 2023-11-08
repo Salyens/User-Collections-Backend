@@ -7,7 +7,7 @@ const getBiggestCollections = (items) => {
   }
   const sortedObj = Object.fromEntries(
     Object.entries(collections)
-      .sort(([, a], [, b]) => b - a)
+      .toSorted(([, a], [, b]) => b - a)
       .slice(0, 5)
   );
   return Object.keys(sortedObj);

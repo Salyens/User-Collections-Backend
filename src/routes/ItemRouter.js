@@ -9,9 +9,9 @@ router
   .route("/")
   .get(ItemController.getAllItems)
   .post([verifyToken, createItem, tagsValidation], ItemController.create)
-  .delete([verifyToken], ItemController.delete);
+  .delete([verifyToken], ItemController.delete)
 
-router
+  router
   .route("/:id")
   .patch(
     [verifyToken, updateItem, tagsValidation, tagsValidation],

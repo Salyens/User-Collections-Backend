@@ -1,4 +1,4 @@
-const { default: mongoose } = require("mongoose");
+const { default: mongoose, Collection } = require("mongoose");
 const { UserCollection } = require("../models/UserCollection");
 const { UserItem } = require("../models/UserItem");
 const {
@@ -8,23 +8,54 @@ const {
 } = require("../helpers");
 const compareTags = require("../helpers/compareTags");
 
+
 exports.getAllItems = async (req, res) => {
   try {
-    const {
-      page = 1,
-      limit = 12,
-      sortBy = "_id",
-      sortDir = -1,
-    } = req.query;
+    const { searchText } = req.query;
+    const { page = 1, limit = 2, sortBy = "_id", sortDir = -1 } = req.query;
     const pageChunk = (page - 1) * limit;
-    const total = await UserItem.countDocuments();
 
-    const userItems = await UserItem.find()
-      .skip(pageChunk)
-      .limit(limit)
-      .sort({ [sortBy]: [sortDir] });
+    const matchStage = searchText
+      ? { $match: { $text: { $search: searchText } } }
+      : { $match: {} };
 
-    return res.send({ userItems, total });
+    const aggregationPipeline = [
+      matchStage,
+      {
+        $group: {
+          _id: null,
+          total: { $sum: 1 },
+          data: { $push: "$$ROOT" },
+        },
+      },
+      {
+        $unwind: "$data",
+      },
+      {
+        $sort: { [`data.${sortBy}`]: sortDir },
+      },
+      {
+        $skip: pageChunk,
+      },
+      {
+        $limit: limit,
+      },
+      {
+        $group: {
+          _id: "$_id",
+          total: { $first: "$total" },
+          userItems: { $push: "$data" },
+        },
+      },
+    ];
+
+    const results = await UserItem.aggregate(aggregationPipeline);
+
+    return res.send(
+      results[0]
+        ? { userItems: results[0].userItems, total: results[0].total }
+        : { userItems: [], total: 0 }
+    );
   } catch (_) {
     return res
       .status(400)
@@ -35,20 +66,32 @@ exports.getAllItems = async (req, res) => {
 exports.create = async (req, res) => {
   try {
     const { _id, name } = req.user;
-    const { name: itemName, imgURL, tags, collectionId } = req.body;
+    const {
+      name: itemName,
+      imgURL,
+      tags,
+      collectionName,
+      additionalFields,
+    } = req.body;
     const trimmedTags = removeLeadingHashes(tags);
-    const userCollection = await UserCollection.findById(collectionId);
 
-    if (!userCollection)
-      return res.status(404).send({ message: "Collection is not found" });
+    const foundCollection = await UserCollection.findOneAndUpdate(
+      { name: collectionName },
+      { $inc: { counter: 1 } }
+    );
+    if (!foundCollection)
+      return res.status(400).send({ message: "Collection is not found" });
 
     const wholeItemInfo = {
       name: itemName.trim(),
       imgURL,
       tags: trimmedTags,
-      collectionName: userCollection.name,
+      collectionName,
       user: { _id, name },
+      additionalFields,
     };
+
+    console.log(wholeItemInfo);
 
     const addedTags = await incrementTagCounts(trimmedTags);
     if (!addedTags)
@@ -57,8 +100,9 @@ exports.create = async (req, res) => {
         .send({ message: "Something went wrong while adding the tags" });
 
     const newItem = await UserItem.create(wholeItemInfo);
+
     return res.send(newItem);
-  } catch (e) {
+  } catch (_) {
     if (e.code === 11000) {
       return res.status(400).send({
         message:
@@ -74,28 +118,38 @@ exports.create = async (req, res) => {
 exports.delete = async (req, res) => {
   try {
     const { idsToDelete } = req.body;
+    const tags = [];
+    const collectionsToUpdate = {};
+    const itemsToDelete = await UserItem.find({ _id: { $in: idsToDelete } });
 
-    const itemsToDelete = await UserItem.find(
-      { _id: { $in: idsToDelete } },
-      { tags: 1, _id: 0 }
+    itemsToDelete.forEach((item) => {
+      if (collectionsToUpdate[item["collectionName"]])
+        collectionsToUpdate[item["collectionName"]]++;
+      else collectionsToUpdate[item["collectionName"]] = 1;
+      tags.push(...item.tags);
+    });
+
+    const updateOperations = Object.keys(collectionsToUpdate).map(
+      (collectionName) => ({
+        updateOne: {
+          filter: { name: collectionName },
+          update: { $inc: { counter: -collectionsToUpdate[collectionName] } },
+        },
+      })
     );
 
-    const tags = [];
-    itemsToDelete.forEach((item) => {
-      tags.push(...item.tags)
-    })
-
+    await UserCollection.bulkWrite(updateOperations);
     const { deletedCount } = await UserItem.deleteMany({
       _id: { $in: idsToDelete },
     });
-
     if (!deletedCount)
       return res.status(404).send({ message: "Item is not found" });
 
-    decrementTagCounts(tags)
-    
+    decrementTagCounts(tags);
+
     return res.send({ message: "Item successfully deleted" });
-  } catch (_) {
+  } catch (e) {
+    console.log(e);
     return res
       .status(400)
       .send({ message: "Something went wrong while deleting the item" });
@@ -104,31 +158,40 @@ exports.delete = async (req, res) => {
 
 exports.update = async (req, res) => {
   try {
-    const itemId = req.params.id;
-    const { name, imgURL, tags } = req.body;
-    const trimmedTags = removeLeadingHashes(tags);
+    let { name, collectionName, tags } = req.body;
+    console.log("newCollectionName: ", collectionName);
 
+    const itemId = req.params.id;
     const itemToUpdate = await UserItem.findOne({ _id: itemId });
 
     if (!itemToUpdate) {
       return res.status(404).send({ message: "Item is not found" });
     }
 
-    const { toAdd, toRemove } = compareTags(itemToUpdate.tags, trimmedTags);
+    if (collectionName && collectionName !== itemToUpdate["collectionName"]) {
+      await UserCollection.findOneAndUpdate(
+        { name: collectionName },
+        { $inc: { counter: 1 } }
+      );
+      await UserCollection.findOneAndUpdate(
+        { name: itemToUpdate["collectionName"] },
+        { $inc: { counter: -1 } }
+      );
+    }
+    Object.assign(itemToUpdate, req.body);
+    await itemToUpdate.save();
+
+    tags = removeLeadingHashes(tags);
+    const { toAdd, toRemove } = compareTags(itemToUpdate.tags, tags);
     incrementTagCounts(toAdd);
     decrementTagCounts(toRemove);
 
-    itemToUpdate.name = name.trim();
-    itemToUpdate.imgURL = imgURL;
-    itemToUpdate.tags = trimmedTags;
-
-    await itemToUpdate.save();
-
     return res.send({ message: "Item successfully updated" });
   } catch (error) {
+    console.log("error: ", error);
+
     return res.status(400).send({
       message: "Something went wrong while updating the item",
-      error: error.message,
     });
   }
 };

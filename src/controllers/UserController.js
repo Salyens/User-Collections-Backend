@@ -49,7 +49,7 @@ exports.registration = async (req, res) => {
     const { email, name, role } = req.body;
 
     const newUser = await User.create({ ...req.body, password });
-    const accessToken = generateToken({ email, _id: newUser._id, name, role }, "1h");
+    const accessToken = generateToken({ email, _id: newUser._id, name, role }, "24h");
     return res.send({ accessToken });
   } catch (e) {
     if (e.code === 11000) {
