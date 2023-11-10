@@ -1,20 +1,41 @@
 const router = require("express").Router();
 const ItemController = require("../controllers/ItemController");
 const { verifyToken } = require("../middlewares/auth");
-const { createItem } = require("../middlewares/item");
-const { tagsValidation } = require("../middlewares/item");
-const { updateItem } = require("../middlewares/item");
+const {
+  createItem,
+  updateItem,
+  tagsValidation,
+} = require("../middlewares/item");
+const {
+  validateAdditionalFields,
+  additionalFieldsValid,
+} = require("../middlewares/item/additionalFieldsValid");
 
 router
   .route("/")
   .get(ItemController.getAllItems)
-  .post([verifyToken, createItem, tagsValidation], ItemController.create)
-  .delete([verifyToken], ItemController.delete)
+  .post(
+    [
+      verifyToken,
+      createItem,
+      tagsValidation,
+      ...validateAdditionalFields,
+      additionalFieldsValid,
+    ],
+    ItemController.create
+  )
+  .delete([verifyToken], ItemController.delete);
 
-  router
+router
   .route("/:id")
   .patch(
-    [verifyToken, updateItem, tagsValidation, tagsValidation],
+    [
+      verifyToken,
+      updateItem,
+      tagsValidation,
+      ...validateAdditionalFields,
+      additionalFieldsValid,
+    ],
     ItemController.update
   );
 

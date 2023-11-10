@@ -3,15 +3,14 @@ const { generateToken } = require("../utils/security");
 const { User } = require("../models/User");
 const { default: mongoose } = require("mongoose");
 
-
-// exports.getAllUsers = async (req, res) => {
-//   try {
-//     const users = await User.find().sort({ status: 1 });
-//     return res.send({users});
-//   } catch (_) {
-//     return res.status(400).send({ message: "Something went wrong" });
-//   }
-// };
+exports.getAllUsers = async (req, res) => {
+  try {
+    const users = await User.find().sort({ role: 1 });
+    return res.send({ users });
+  } catch (_) {
+    return res.status(400).send({ message: "Something went wrong" });
+  }
+};
 
 exports.login = async (req, res) => {
   try {
@@ -32,14 +31,16 @@ exports.login = async (req, res) => {
         _id: foundUser._id,
         status: foundUser.status,
         name: foundUser.name,
-        role:foundUser.role
+        role: foundUser.role,
       },
       "1h"
     );
 
     return res.send({ accessToken });
   } catch (_) {
-    return res.status(400).send({ message: "Something went wrong while processing the login request" });
+    return res.status(400).send({
+      message: "Something went wrong while processing the login request",
+    });
   }
 };
 
@@ -49,37 +50,58 @@ exports.registration = async (req, res) => {
     const { email, name, role } = req.body;
 
     const newUser = await User.create({ ...req.body, password });
-    const accessToken = generateToken({ email, _id: newUser._id, name, role }, "24h");
+    const accessToken = generateToken(
+      { email, _id: newUser._id, name, role },
+      "24h"
+    );
     return res.send({ accessToken });
   } catch (e) {
     if (e.code === 11000) {
       return res.status(400).send({ message: "Email already exists" });
     }
-    return res.status(400).send({ message: "Something went wrong during registration" });
+    return res
+      .status(400)
+      .send({ message: "Something went wrong during registration" });
   }
 };
 
+exports.update = async (req, res) => {
+  try {
+    const { blockStatus, role: userRole, ids } = req.body;
+    const updateUsers = async (field, value) => {
+      await User.updateMany(
+        {
+          _id: { $in: ids },
+        },
+        { $set: { [field]: value } }
+      );
+    };
 
-// exports.update = async (req, res) => {
-//   try {
-//     const ObjectId = mongoose.Types.ObjectId;
-//     const { blockStatus, ids } = req.body;
+    if (blockStatus) updateUsers("status", true);
+    else if ("blockStatus" in req.body && !blockStatus)
+      updateUsers("status", false);
 
-//     if (blockStatus) updateUsers(ids, true);
-//     else if (!blockStatus) updateUsers(ids, false);
+    if (userRole === "admin" || userRole === "user")
+      updateUsers("role", userRole);
+    else return res.send({ message: "Invalid role" });
 
-//     async function updateUsers(ids, userStatus) {
-//       const convertedIds = ids.map((id) => new ObjectId(id));
-//       await User.updateMany(
-//         {
-//           _id: { $in: convertedIds },
-//         },
-//         { $set: { status: userStatus } }
-//       );
-//     }
+    return res.send({ message: "Users successfully updated" });
+  } catch (_) {
+    return res.status(400).send({ message: "Something is wrong" });
+  }
+};
 
-//     return res.send({ message: "Users successfully updated"});
-//   } catch (_) {
-//     return res.status(400).send({ message: "Something is wrong" });
-//   }
-// };
+exports.delete = async (req, res) => {
+  try {
+    const { ids } = req.body;
+
+    const { deletedCount } = await User.deleteMany({
+      _id: { $in: ids },
+    });
+    if (!deletedCount)
+      return res.status(404).send({ message: "Users is not found" });
+    return res.send({ message: "Users successfully deleted" });
+  } catch (_) {
+    return res.status(400).send({ message: "Something is wrong" });
+  }
+};

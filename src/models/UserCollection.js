@@ -7,6 +7,7 @@ const UserCollectionSchema = new mongoose.Schema(
     theme: { type: String, required: true },
     counter: { type: Number, required: true, default: 0 },
     imgURL: { type: String, minlength: 1 },
+    additionalFields: { type: mongoose.Schema.Types.Mixed }
   },
   { versionKey: false }
 );

@@ -1,13 +1,8 @@
 const { default: mongoose } = require("mongoose");
-const {
-  UserCollection,
-  UserCollectionSchema,
-} = require("../models/UserCollection");
+const { UserCollection } = require("../models/UserCollection");
 const { UserItem, UserItemSchema } = require("../models/UserItem");
-const replaceKey = require("../helpers/replaceKey");
-const toTrim = require("../helpers/toTrim");
 
-exports.getCollections = async (req, res) => {
+exports.getAllCollections = async (req, res) => {
   try {
     const {
       page = 1,
@@ -35,17 +30,32 @@ exports.getCollections = async (req, res) => {
   }
 };
 
-exports.create = async (req, res) => {
-  const { name, description, theme } = req.body;
+exports.getOneCollection = async (req, res) => {
   try {
-    const trimmedCollectionInfo = toTrim({ name, description });
+    const { id } = req.params;
+    const oneCollection = await UserCollection.find({ _id: id });
+
+    return res.send(oneCollection);
+  } catch (_) {
+    return res
+      .status(400)
+      .send({ message: "Something went wrong while getting all collections" });
+  }
+};
+
+exports.create = async (req, res) => {
+  const { name, description, theme, additionalFields } = req.body;
+  console.log("additionalFields: ", additionalFields);
+  try {
     const newCollection = await UserCollection.create({
-      ...trimmedCollectionInfo,
+      name: name.trim(),
+      description: description.trim(),
       theme,
+      additionalFields,
     });
 
     return res.send(newCollection);
-  } catch (e) {
+  } catch (_) {
     if (e.code === 11000) {
       return res.status(400).send({
         message:
@@ -80,7 +90,7 @@ exports.delete = async (req, res) => {
 
 exports.update = async (req, res) => {
   try {
-    const { name, description, theme } = req.body;
+    const { name } = req.body;
     const collectionId = req.params.id;
 
     const foundCollection = await UserCollection.findOneAndUpdate(
@@ -96,22 +106,14 @@ exports.update = async (req, res) => {
 
     return res.send({ message: "Collection successfully updated" });
   } catch (e) {
-    console.log(e);
+    if (e.code === 11000) {
+      return res.status(400).send({
+        message:
+          "A collection with this name already exists. Please choose another name.",
+      });
+    }
     return res
       .status(400)
       .send({ message: "Something went wrong while updating the collection" });
-  }
-};
-
-exports.addNewFields = (req, res) => {
-  try {
-    for (const key in req.body) {
-      UserItemSchema.add({ [key]: req.body[key] });
-    }
-    mongoose.model("UserItem", UserItemSchema);
-
-    return res.send({ message: "New fields successfully added" });
-  } catch (error) {
-    console.log("error: ", error);
   }
 };
