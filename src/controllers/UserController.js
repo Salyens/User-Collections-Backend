@@ -33,7 +33,7 @@ exports.login = async (req, res) => {
         name: foundUser.name,
         role: foundUser.role,
       },
-      "1h"
+      "24h"
     );
 
     return res.send({ accessToken });

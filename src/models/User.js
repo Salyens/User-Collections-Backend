@@ -2,6 +2,7 @@ const mongoose = require("mongoose");
 
 const UserSchemaShort = new mongoose.Schema(
   {
+    _id: { type: mongoose.Schema.Types.ObjectId, required: true },
     name: { type: String, minlength: 1, required: true },
   },
   { versionKey: false }

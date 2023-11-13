@@ -1,7 +1,8 @@
-const tagsValidation = (req, res, next) => {
+const updateTags = (req, res, next) => {
   const { tags } = req.body;
+  if (!tags) return next();
 
-  if (!Array.isArray(tags) || !tags.length) {
+  if (tags && !Array.isArray(tags)) {
     return res
       .status(400)
       .send({ message: "The 'tags' field should be a list of tags." });
@@ -17,6 +18,4 @@ const tagsValidation = (req, res, next) => {
   return next();
 };
 
-
-
-module.exports = tagsValidation;
+module.exports = updateTags;

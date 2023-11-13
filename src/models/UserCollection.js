@@ -1,8 +1,10 @@
 const mongoose = require("mongoose");
+const { UserSchemaShort } = require("./User");
 
 const UserCollectionSchema = new mongoose.Schema(
   {
     name: { type: String, minlength: 1, required: true, unique: true },
+    user: { type: UserSchemaShort, required: true },
     description: { type: String, required: true },
     theme: { type: String, required: true },
     counter: { type: Number, required: true, default: 0 },

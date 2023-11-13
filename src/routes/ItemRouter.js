@@ -4,39 +4,19 @@ const { verifyToken } = require("../middlewares/auth");
 const {
   createItem,
   updateItem,
-  tagsValidation,
+
 } = require("../middlewares/item");
-const {
-  validateAdditionalFields,
-  additionalFieldsValid,
-} = require("../middlewares/item/additionalFieldsValid");
+const createTags = require("../middlewares/item/createTags");
+const updateTags = require("../middlewares/item/updateTags");
 
 router
   .route("/")
   .get(ItemController.getAllItems)
-  .post(
-    [
-      verifyToken,
-      createItem,
-      tagsValidation,
-      ...validateAdditionalFields,
-      additionalFieldsValid,
-    ],
-    ItemController.create
-  )
+  .post([verifyToken, createItem, createTags], ItemController.create)
   .delete([verifyToken], ItemController.delete);
 
 router
   .route("/:id")
-  .patch(
-    [
-      verifyToken,
-      updateItem,
-      tagsValidation,
-      ...validateAdditionalFields,
-      additionalFieldsValid,
-    ],
-    ItemController.update
-  );
+  .patch([verifyToken, updateItem, updateTags], ItemController.update);
 
 module.exports = router;

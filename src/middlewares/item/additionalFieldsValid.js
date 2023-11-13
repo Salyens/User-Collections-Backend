@@ -17,9 +17,6 @@ const validateAdditionalFields = [
     }
 
     if (field.type === "date") {
-      if (typeof field.value !== "number") {
-        throw new Error(`Field '${key}' must be a timestamp`);
-      }
       const date = new Date(field.value);
       if (isNaN(date.getTime())) {
         throw new Error(`Invalid date in field '${key}'`);
