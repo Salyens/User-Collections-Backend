@@ -12,6 +12,10 @@ router
   .get(CollectionController.getAllCollections)
   .post([verifyToken, createCollection], CollectionController.create)
   .delete([verifyToken, deleteCollection], CollectionController.delete);
+  
+  router.get('/me',[verifyToken], CollectionController.getAllCollections)
+
+  
 
 router
   .route("/:id")

@@ -4,15 +4,15 @@ const { UserItem } = require("../models/UserItem");
 const { removeLeadingHashes, changeTagCounts } = require("../helpers");
 const compareTags = require("../helpers/compareTags");
 const toTrim = require("../helpers/toTrim");
-const { Tags } = require("../models/Tags");
 const validOneString = require("../helpers/validOneString");
 const countTagsAndCollections = require("../helpers/tags/countTagsAndCollections");
+const CONN = mongoose.connection;
 
 exports.getAllItems = async (req, res) => {
   try {
     const { searchText } = req.query;
     const { page = 1, limit = 10, sortBy = "_id", sortDir = -1 } = req.query;
-    const pageChunk = (page - 1) * limit;
+    const pageChunk = (+page - 1) * +limit;
 
     const matchStage = searchText
       ? { $match: { $text: { $search: `"${searchText}"` } } }
@@ -37,7 +37,7 @@ exports.getAllItems = async (req, res) => {
         $skip: pageChunk,
       },
       {
-        $limit: limit,
+        $limit: +limit,
       },
       {
         $group: {
@@ -55,7 +55,7 @@ exports.getAllItems = async (req, res) => {
         ? { userItems: results[0].userItems, total: results[0].total }
         : { userItems: [], total: 0 }
     );
-  } catch (_) {
+  } catch (e) {
     return res
       .status(400)
       .send({ message: "Something went wrong while getting the items" });
@@ -63,8 +63,7 @@ exports.getAllItems = async (req, res) => {
 };
 
 exports.create = async (req, res) => {
-  const conn = mongoose.connection;
-  const session = await conn.startSession();
+  const session = await CONN.startSession();
   try {
     session.startTransaction();
     const { _id, name } = req.user;
@@ -128,12 +127,14 @@ exports.create = async (req, res) => {
 };
 
 exports.delete = async (req, res) => {
-  const conn = mongoose.connection;
-  const session = await conn.startSession();
+  const session = await CONN.startSession();
   try {
     session.startTransaction();
     const { idsToDelete } = req.body;
-    const {tags, collectionsToUpdate} = await countTagsAndCollections(idsToDelete, session);
+    const { tags, collectionsToUpdate } = await countTagsAndCollections(
+      idsToDelete,
+      session
+    );
 
     const updateOperations = Object.keys(collectionsToUpdate).map(
       (collectionName) => ({
@@ -155,11 +156,9 @@ exports.delete = async (req, res) => {
     if (!deletedCount)
       return res.status(404).send({ message: "Item is not found" });
 
-
     await session.commitTransaction();
     return res.send({ message: "Item successfully deleted" });
   } catch (e) {
-    console.log(e);
     await session.abortTransaction();
     if (e.message === "tagsError")
       return res
@@ -174,32 +173,26 @@ exports.delete = async (req, res) => {
 };
 
 exports.update = async (req, res) => {
-  const conn = mongoose.connection;
-  const session = await conn.startSession();
+  const session = await CONN.startSession();
   try {
     session.startTransaction();
     let { tags, collectionName } = req.body;
     let trimmedValues = toTrim(req.body);
     const { additionalFields } = trimmedValues;
-    const itemId = req.params.id;
-    const itemToUpdate = await UserItem.findOne({ _id: itemId }, null, {
-      session,
-    });
-
     const errors = [];
+    const itemToUpdate = await UserItem.findOne({ _id: req.params.id });
+
     if (!itemToUpdate) {
       return res.status(404).send({ message: "Item is not found" });
     }
     if (collectionName)
-      return res.status(404).send({ message: "Collection should not be changed" });
+      return res
+        .status(404)
+        .send({ message: "Collection should not be changed" });
 
-    const foundCollection = await UserCollection.findOne(
-      {
-        name: itemToUpdate.collectionName,
-      },
-      null,
-      { session }
-    );
+    const foundCollection = await UserCollection.findOne({
+      name: itemToUpdate.collectionName,
+    });
 
     if (!foundCollection) {
       return res.status(404).send({ message: "Collection is not found" });
@@ -208,8 +201,11 @@ exports.update = async (req, res) => {
     const updatedAdditionalFields = {};
     for (const key in additionalFields) {
       if (itemToUpdate.additionalFields.hasOwnProperty(key)) {
-        if (foundCollection.additionalFields[key]["isOneString"])
-          validOneString(additionalFields[key]["value"], errors);
+        if (foundCollection.additionalFields[key]["isOneString"]) {
+          const error = validOneString(additionalFields[key]["value"], key);
+          if (error) errors.push(error);
+        }
+
         if (
           typeof additionalFields[key]["value"] ===
           foundCollection.additionalFields[key]["type"]
@@ -224,7 +220,7 @@ exports.update = async (req, res) => {
     if (tags) {
       const oldTags = itemToUpdate["tags"];
       const trimmedTags = removeLeadingHashes(tags);
-      trimmedValues = { ...trimmedValues, tags:trimmedTags };
+      trimmedValues = { ...trimmedValues, tags: trimmedTags };
       const { toAdd, toRemove } = compareTags(oldTags, trimmedTags);
       await changeTagCounts(toAdd, toRemove, session);
     }
@@ -240,10 +236,10 @@ exports.update = async (req, res) => {
     Object.assign(itemToUpdate, allItemData);
     itemToUpdate.markModified("additionalFields");
     await itemToUpdate.save({ session });
+
     await session.commitTransaction();
     return res.send({ message: "Item successfully updated" });
   } catch (e) {
-    console.log(e);
     await session.abortTransaction();
     return res.status(400).send({
       message: "Something went wrong while updating the item",

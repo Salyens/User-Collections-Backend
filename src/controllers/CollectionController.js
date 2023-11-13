@@ -1,15 +1,27 @@
 const { default: mongoose } = require("mongoose");
 const { UserCollection } = require("../models/UserCollection");
-const { UserItem, UserItemSchema } = require("../models/UserItem");
+const { UserItem } = require("../models/UserItem");
 const { toTrim } = require("../helpers");
+const CONN = mongoose.connection;
 
 exports.getAllCollections = async (req, res) => {
   try {
-    const { page = 1, limit = 10, sortBy = "counter", sortDir = 1 } = req.query;
+    const {
+      page = 1,
+      limit = 10,
+      sortBy = "counter",
+      sortDir = -1,
+      // userId,
+    } = req.query;
+    console.log(req.user);
     const pageChunk = (page - 1) * limit;
     const total = await UserCollection.countDocuments();
+    // let query = {};
+    // if (userId) query = { "user._id": userId };
 
-    const allCollections = await UserCollection.find()
+    const allCollections = await UserCollection.find(
+      req.user ? { "user._id": req.user.id } : {}
+    )
       .skip(pageChunk)
       .limit(limit)
       .sort({ [sortBy]: [sortDir] });
@@ -18,7 +30,8 @@ exports.getAllCollections = async (req, res) => {
       collections: allCollections,
       total,
     });
-  } catch (_) {
+  } catch (e) {
+    console.log(e);
     return res
       .status(400)
       .send({ message: "Something went wrong while getting all collections" });
@@ -62,8 +75,7 @@ exports.create = async (req, res) => {
 };
 
 exports.delete = async (req, res) => {
-  const conn = mongoose.connection;
-  const session = await conn.startSession();
+  const session = await CONN.startSession();
   try {
     session.startTransaction();
     const { name } = req.body;
@@ -92,16 +104,14 @@ exports.delete = async (req, res) => {
 };
 
 exports.update = async (req, res) => {
-  const conn = mongoose.connection;
-  const session = await conn.startSession();
+  const session = await CONN.startSession();
   try {
     session.startTransaction();
-    const collectionId = req.params.id;
     const trimmedValues = toTrim(req.body);
     const { name } = trimmedValues;
     const foundCollection = await UserCollection.findOneAndUpdate(
-      { _id: collectionId },
-      { ...trimmedValues },
+      { _id: req.params.id },
+      trimmedValues,
       { returnDocument: "before", session }
     );
 
