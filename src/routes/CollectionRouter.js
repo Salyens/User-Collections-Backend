@@ -1,21 +1,22 @@
 const router = require("express").Router();
 const CollectionController = require("../controllers/CollectionController");
 const { verifyToken } = require("../middlewares/auth");
-const { createCollection } = require("../middlewares/collection");
+const {
+  createCollection,
+  deleteCollection,
+} = require("../middlewares/collection");
 const { updateCollection } = require("../middlewares/collection");
 
 router
   .route("/")
-  .get(CollectionController.getTopCollections)
-  .post([verifyToken, createCollection], CollectionController.create)
-  .delete([verifyToken], CollectionController.delete);
-
-  router
-  .route("/all")
   .get(CollectionController.getAllCollections)
+  .post([verifyToken, createCollection], CollectionController.create)
+  .delete([verifyToken, deleteCollection], CollectionController.delete);
 
 router
   .route("/:id")
-  .patch([verifyToken, updateCollection], CollectionController.update);
+  .patch([verifyToken, updateCollection], CollectionController.update)
+  .get(CollectionController.getOneCollection);
+
 
 module.exports = router;

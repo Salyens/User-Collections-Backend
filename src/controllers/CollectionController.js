@@ -1,20 +1,23 @@
 const { default: mongoose } = require("mongoose");
 const { UserCollection } = require("../models/UserCollection");
-const { UserItem } = require("../models/UserItem");
-const getBiggestCollections = require("../helpers/getBiggestCollections");
+const { UserItem, UserItemSchema } = require("../models/UserItem");
+const { toTrim } = require("../helpers");
 
 exports.getAllCollections = async (req, res) => {
   try {
-    const { page = 1, limit = 6, sortBy = "_id", sortDir = -1 } = req.query;
+    const { page = 1, limit = 10, sortBy = "counter", sortDir = 1 } = req.query;
     const pageChunk = (page - 1) * limit;
     const total = await UserCollection.countDocuments();
 
-    const collections = await UserCollection.find()
+    const allCollections = await UserCollection.find()
       .skip(pageChunk)
       .limit(limit)
       .sort({ [sortBy]: [sortDir] });
 
-    return res.send({ collections, total });
+    return res.send({
+      collections: allCollections,
+      total,
+    });
   } catch (_) {
     return res
       .status(400)
@@ -22,34 +25,28 @@ exports.getAllCollections = async (req, res) => {
   }
 };
 
-exports.getTopCollections = async (req, res) => {
+exports.getOneCollection = async (req, res) => {
   try {
-    const userItems = await UserItem.find();
-    const topCollectionList = getBiggestCollections(userItems);
-    const fetchedCollections = await UserCollection.find({
-      name: { $in: topCollectionList },
-    });
-    const collections = fetchedCollections.sort((a, b) => {
-      return (
-        topCollectionList.indexOf(a.name) - topCollectionList.indexOf(b.name)
-      );
-    });
-    return res.send({collections});
+    const { id } = req.params;
+    const oneCollection = await UserCollection.find({ _id: id });
+
+    return res.send(oneCollection);
   } catch (_) {
-    return res.status(400).send({
-      message: "Something went wrong while getting the top collections",
-    });
+    return res
+      .status(400)
+      .send({ message: "Something went wrong while getting all collections" });
   }
 };
 
 exports.create = async (req, res) => {
-  const { name, description } = req.body;
   try {
+    const { _id, name: userName } = req.user;
+    const trimmedValues = toTrim(req.body);
     const newCollection = await UserCollection.create({
-      name: name.trim(),
-      description: description.trim(),
-      userId: req.user._id,
+      ...trimmedValues,
+      user: { _id, name: userName },
     });
+
     return res.send(newCollection);
   } catch (e) {
     if (e.code === 11000) {
@@ -65,34 +62,58 @@ exports.create = async (req, res) => {
 };
 
 exports.delete = async (req, res) => {
+  const conn = mongoose.connection;
+  const session = await conn.startSession();
   try {
-    const { idsToDelete } = req.body;
-    const { deletedCount } = await UserCollection.deleteMany({
-      _id: { $in: idsToDelete },
-    });
+    session.startTransaction();
+    const { name } = req.body;
+    let { deletedCount } = await UserCollection.deleteOne(
+      {
+        name,
+      },
+      { session }
+    );
+
     if (!deletedCount)
       return res.status(404).send({ message: "Collection is not found" });
+
+    await UserItem.deleteMany({ collectionName: name }, { session });
+
+    await session.commitTransaction();
     return res.send({ message: "Collection successfully deleted" });
   } catch (_) {
+    await session.abortTransaction();
     return res
       .status(400)
       .send({ message: "Something went wrong while deleting the collection" });
+  } finally {
+    session.endSession();
   }
 };
 
 exports.update = async (req, res) => {
-  const collectionId = req.params.id;
+  const conn = mongoose.connection;
+  const session = await conn.startSession();
   try {
-    const { name, description } = req.body;
-    await UserCollection.updateOne(
-      {
-        _id: { $in: collectionId },
-      },
-      { $set: { name: name.trim(), description: description.trim() } }
+    session.startTransaction();
+    const collectionId = req.params.id;
+    const trimmedValues = toTrim(req.body);
+    const { name } = trimmedValues;
+    const foundCollection = await UserCollection.findOneAndUpdate(
+      { _id: collectionId },
+      { ...trimmedValues },
+      { returnDocument: "before", session }
     );
 
+    await UserItem.updateMany(
+      { collectionName: foundCollection.name },
+      { $set: { collectionName: name } },
+      { session }
+    );
+    await session.commitTransaction();
     return res.send({ message: "Collection successfully updated" });
   } catch (e) {
+    await session.abortTransaction();
     if (e.code === 11000) {
       return res.status(400).send({
         message:
@@ -102,5 +123,7 @@ exports.update = async (req, res) => {
     return res
       .status(400)
       .send({ message: "Something went wrong while updating the collection" });
+  } finally {
+    session.endSession();
   }
 };

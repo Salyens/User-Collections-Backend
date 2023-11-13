@@ -1,4 +1,5 @@
 const compareTags = (oldTags, newTags) => {
+
   if (
     oldTags.length === newTags.length &&
     oldTags.every((value, index) => value === newTags[index])

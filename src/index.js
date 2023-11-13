@@ -5,6 +5,8 @@ const mongoose = require("mongoose");
 const routes = require("./routes");
 const app = express();
 const cors = require("cors");
+const { UserItem } = require("./models/UserItem");
+const validOneString = require("./helpers/validOneString");
 
 app.use(express.json());
 app.use(cors());
