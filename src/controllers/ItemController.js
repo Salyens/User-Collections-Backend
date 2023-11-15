@@ -1,11 +1,11 @@
 const { default: mongoose } = require("mongoose");
 const { UserCollection } = require("../models/UserCollection");
 const { UserItem } = require("../models/UserItem");
-const { removeLeadingHashes, changeTagCounts } = require("../helpers");
-const compareTags = require("../helpers/compareTags");
+const { removeLeadingHashes, changeTagCounts, compareTags } = require("../helpers");
 const toTrim = require("../helpers/toTrim");
 const validOneString = require("../helpers/validOneString");
 const countTagsAndCollections = require("../helpers/tags/countTagsAndCollections");
+const getUpdatedAdditionalFields = require("../helpers/tags/getUpdatedAdditionalFields");
 const CONN = mongoose.connection;
 
 exports.getAllItems = async (req, res) => {
@@ -63,6 +63,7 @@ exports.getAllItems = async (req, res) => {
 };
 
 exports.create = async (req, res) => {
+
   const session = await CONN.startSession();
   try {
     session.startTransaction();
@@ -78,8 +79,10 @@ exports.create = async (req, res) => {
     );
     if (!foundCollection)
       return res.status(404).send({ message: "Collection is not found" });
+
     const errors = [];
     const updatedAdditionalFields = {};
+
     for (const key in foundCollection.additionalFields) {
       if (additionalFields.hasOwnProperty(key)) {
         if (foundCollection.additionalFields[key]["isOneString"])
@@ -89,8 +92,10 @@ exports.create = async (req, res) => {
           foundCollection.additionalFields[key]["type"]
         )
           updatedAdditionalFields[key] = additionalFields[key];
-      } else errors.push(`Wrong type of field ${key}`);
+        else errors.push(`Wrong type of field ${key} or the field is empty`);
+      }
     }
+
     if (errors.length) return res.status(400).send({ message: errors });
 
     const wholeItemInfo = {
@@ -179,7 +184,6 @@ exports.update = async (req, res) => {
     let { tags, collectionName } = req.body;
     let trimmedValues = toTrim(req.body);
     const { additionalFields } = trimmedValues;
-    const errors = [];
     const itemToUpdate = await UserItem.findOne({ _id: req.params.id });
 
     if (!itemToUpdate) {
@@ -198,31 +202,22 @@ exports.update = async (req, res) => {
       return res.status(404).send({ message: "Collection is not found" });
     }
 
-    const updatedAdditionalFields = {};
-    for (const key in additionalFields) {
-      if (itemToUpdate.additionalFields.hasOwnProperty(key)) {
-        if (foundCollection.additionalFields[key]["isOneString"]) {
-          const error = validOneString(additionalFields[key]["value"], key);
-          if (error) errors.push(error);
-        }
-
-        if (
-          typeof additionalFields[key]["value"] ===
-          foundCollection.additionalFields[key]["type"]
-        )
-          updatedAdditionalFields[key] = additionalFields[key];
-        else errors.push(`Wrong type of field ${key}`);
-      }
-    }
-
+    const { updatedAdditionalFields, errors } = getUpdatedAdditionalFields(
+      additionalFields,
+      itemToUpdate,
+      foundCollection
+    );
     if (errors.length) return res.status(400).send({ message: errors });
 
     if (tags) {
       const oldTags = itemToUpdate["tags"];
       const trimmedTags = removeLeadingHashes(tags);
       trimmedValues = { ...trimmedValues, tags: trimmedTags };
-      const { toAdd, toRemove } = compareTags(oldTags, trimmedTags);
-      await changeTagCounts(toAdd, toRemove, session);
+      const { tagsToIncrement, tagsToDecrement } = compareTags(
+        oldTags,
+        trimmedTags
+      );
+      await changeTagCounts(tagsToIncrement, tagsToDecrement, session);
     }
 
     const allItemData = {
