@@ -1,7 +1,11 @@
 const { default: mongoose } = require("mongoose");
 const { UserCollection } = require("../models/UserCollection");
 const { UserItem } = require("../models/UserItem");
-const { removeLeadingHashes, changeTagCounts, compareTags } = require("../helpers");
+const {
+  removeLeadingHashes,
+  changeTagCounts,
+  compareTags,
+} = require("../helpers");
 const toTrim = require("../helpers/toTrim");
 const validOneString = require("../helpers/validOneString");
 const countTagsAndCollections = require("../helpers/tags/countTagsAndCollections");
@@ -62,8 +66,19 @@ exports.getAllItems = async (req, res) => {
   }
 };
 
-exports.create = async (req, res) => {
+exports.getUserItems = async (req, res) => {
+  try {
+    const { collectionName } = req.params;
+    const userItems = await UserItem.find({ collectionName });
+    return res.send(userItems);
+  } catch (_) {
+    return res
+      .status(400)
+      .send({ message: "Something went wrong while getting all collections" });
+  }
+};
 
+exports.create = async (req, res) => {
   const session = await CONN.startSession();
   try {
     session.startTransaction();
@@ -84,16 +99,27 @@ exports.create = async (req, res) => {
     const updatedAdditionalFields = {};
 
     for (const key in foundCollection.additionalFields) {
-      if (additionalFields.hasOwnProperty(key)) {
-        if (foundCollection.additionalFields[key]["isOneString"])
-          validOneString(additionalFields[key]["value"], errors);
-        if (
-          typeof additionalFields[key]["value"] ===
-          foundCollection.additionalFields[key]["type"]
-        )
-          updatedAdditionalFields[key] = additionalFields[key];
-        else errors.push(`Wrong type of field ${key} or the field is empty`);
+      if (!additionalFields.hasOwnProperty(key))
+        return res
+          .status(400)
+          .send({ message: `The field ${key} shouldn't be empty` });
+
+      if (foundCollection.additionalFields[key]["isOneString"]) {
+        const isError = validOneString(additionalFields[key]["value"], key);
+        if (isError) errors.push(isError);
       }
+
+      if (
+        typeof additionalFields[key]["value"] ===
+        foundCollection.additionalFields[key]["type"]
+      )
+        updatedAdditionalFields[key] = additionalFields[key];
+      else if (
+        foundCollection.additionalFields[key]["type"] === "date" &&
+        typeof additionalFields[key]["value"] === "number"
+      )
+        updatedAdditionalFields[key] = additionalFields[key];
+      else errors.push(`Wrong type of field ${key} or the field is empty`);
     }
 
     if (errors.length) return res.status(400).send({ message: errors });
@@ -112,6 +138,7 @@ exports.create = async (req, res) => {
 
     return res.send(newItem);
   } catch (e) {
+    console.log("e: ", e);
     await session.abortTransaction();
     if (e.message === "tagsError")
       return res

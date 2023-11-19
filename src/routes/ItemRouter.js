@@ -13,6 +13,8 @@ router
   .post([verifyToken, createItem, createTags], ItemController.create)
   .delete([verifyToken], ItemController.delete);
 
+router.get("/by-collection/:collectionName", ItemController.getUserItems);
+
 router
   .route("/:id")
   .patch([verifyToken, updateItem, updateTags], ItemController.update);

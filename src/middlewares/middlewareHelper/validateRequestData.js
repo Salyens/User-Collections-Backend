@@ -17,9 +17,7 @@ const validateRequestData = async (req, fields, value) => {
 };
 
 const getValueByPath = (obj, path) => {
-  // Разбиваем путь на ключи и используем reduce для извлечения значения
   return path.split(".").reduce((currentValue, key) => {
-    // Проверяем, существует ли ключ в текущем объекте/подуровне
     return currentValue ? currentValue[key] : null;
   }, obj);
 };
@@ -39,7 +37,8 @@ const createFieldValidations = (reqBody, fields, value) => {
           value === "type" &&
           fieldValue !== "string" &&
           fieldValue !== "number" &&
-          fieldValue !== "boolean"
+          fieldValue !== "boolean" &&
+          fieldValue !== "date"
         ) {
           return Promise.reject(
             `The type of field '${additionalField}' is invalid`
