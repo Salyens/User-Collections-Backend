@@ -1,16 +1,11 @@
 const compareTags = (oldTags, newTags) => {
+  if (!oldTags.length && !newTags.length)
+    return { tagsToIncrement: [], tagsToDecrement: [] };
+  
+  const tagsToIncrement = newTags.filter((tag) => !oldTags.includes(tag));
+  const tagsToDecrement = oldTags.filter((tag) => !newTags.includes(tag));
 
-  if (
-    oldTags.length === newTags.length &&
-    oldTags.every((value, index) => value === newTags[index])
-  ) {
-    return { toAdd: [], toRemove: [] };
-  }
-
-  const toAdd = newTags.filter((item) => !oldTags.includes(item));
-  const toRemove = oldTags.filter((item) => !newTags.includes(item));
-
-  return { toAdd, toRemove };
+  return { tagsToIncrement, tagsToDecrement };
 };
 
 module.exports = compareTags;

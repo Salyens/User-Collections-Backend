@@ -9,12 +9,3 @@ const decrementTagCount = (tagsToDecrement, doc) => {
   };
   
   module.exports = decrementTagCount;
-
-      // if (tagsToDecrement && tagsToDecrement.length) {
-    //     tagsToDecrement.forEach((tag) => {
-    //       if (doc.tags[tag]) {
-    //         if (doc.tags[tag].itemCount - 1 < 1) delete doc.tags[tag];
-    //         else doc.tags[tag].itemCount--;
-    //       }
-    //     });
-    //   }

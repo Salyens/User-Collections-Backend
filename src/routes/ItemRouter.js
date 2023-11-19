@@ -1,12 +1,10 @@
 const router = require("express").Router();
 const ItemController = require("../controllers/ItemController");
 const { verifyToken } = require("../middlewares/auth");
-const {
-  createItem,
-  updateItem,
+const createItem = require("../middlewares/item/createItem");
 
-} = require("../middlewares/item");
 const createTags = require("../middlewares/item/createTags");
+const updateItem = require("../middlewares/item/updateItem");
 const updateTags = require("../middlewares/item/updateTags");
 
 router
@@ -14,6 +12,8 @@ router
   .get(ItemController.getAllItems)
   .post([verifyToken, createItem, createTags], ItemController.create)
   .delete([verifyToken], ItemController.delete);
+
+router.get("/by-collection/:collectionName", ItemController.getUserItems);
 
 router
   .route("/:id")

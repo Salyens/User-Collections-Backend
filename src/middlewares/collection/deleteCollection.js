@@ -1,5 +1,5 @@
-const generateValidationMiddleware = require("../middlewareHelper/generateValidationMiddleware");
-const fields = [{ name: "name" }];
-const deleteCollection = generateValidationMiddleware(fields, "collection");
+// const generateValidationMiddleware = require("../middlewareHelper/generateValidationMiddleware");
+// const fields = ["name"];
+// const deleteCollection = generateValidationMiddleware(fields);
 
-module.exports = deleteCollection;
+// module.exports = deleteCollection;

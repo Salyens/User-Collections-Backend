@@ -1,18 +1,22 @@
 const { default: mongoose } = require("mongoose");
 const { UserCollection } = require("../models/UserCollection");
 const { UserItem } = require("../models/UserItem");
-const { removeLeadingHashes, changeTagCounts } = require("../helpers");
-const compareTags = require("../helpers/compareTags");
+const {
+  removeLeadingHashes,
+  changeTagCounts,
+  compareTags,
+} = require("../helpers");
 const toTrim = require("../helpers/toTrim");
-const { Tags } = require("../models/Tags");
 const validOneString = require("../helpers/validOneString");
 const countTagsAndCollections = require("../helpers/tags/countTagsAndCollections");
+const getUpdatedAdditionalFields = require("../helpers/tags/getUpdatedAdditionalFields");
+const CONN = mongoose.connection;
 
 exports.getAllItems = async (req, res) => {
   try {
     const { searchText } = req.query;
     const { page = 1, limit = 10, sortBy = "_id", sortDir = -1 } = req.query;
-    const pageChunk = (page - 1) * limit;
+    const pageChunk = (+page - 1) * +limit;
 
     const matchStage = searchText
       ? { $match: { $text: { $search: `"${searchText}"` } } }
@@ -37,7 +41,7 @@ exports.getAllItems = async (req, res) => {
         $skip: pageChunk,
       },
       {
-        $limit: limit,
+        $limit: +limit,
       },
       {
         $group: {
@@ -55,16 +59,27 @@ exports.getAllItems = async (req, res) => {
         ? { userItems: results[0].userItems, total: results[0].total }
         : { userItems: [], total: 0 }
     );
-  } catch (_) {
+  } catch (e) {
     return res
       .status(400)
       .send({ message: "Something went wrong while getting the items" });
   }
 };
 
+exports.getUserItems = async (req, res) => {
+  try {
+    const { collectionName } = req.params;
+    const userItems = await UserItem.find({ collectionName });
+    return res.send(userItems);
+  } catch (_) {
+    return res
+      .status(400)
+      .send({ message: "Something went wrong while getting all collections" });
+  }
+};
+
 exports.create = async (req, res) => {
-  const conn = mongoose.connection;
-  const session = await conn.startSession();
+  const session = await CONN.startSession();
   try {
     session.startTransaction();
     const { _id, name } = req.user;
@@ -79,19 +94,34 @@ exports.create = async (req, res) => {
     );
     if (!foundCollection)
       return res.status(404).send({ message: "Collection is not found" });
+
     const errors = [];
     const updatedAdditionalFields = {};
+
     for (const key in foundCollection.additionalFields) {
-      if (additionalFields.hasOwnProperty(key)) {
-        if (foundCollection.additionalFields[key]["isOneString"])
-          validOneString(additionalFields[key]["value"], errors);
-        if (
-          typeof additionalFields[key]["value"] ===
-          foundCollection.additionalFields[key]["type"]
-        )
-          updatedAdditionalFields[key] = additionalFields[key];
-      } else errors.push(`Wrong type of field ${key}`);
+      if (!additionalFields.hasOwnProperty(key))
+        return res
+          .status(400)
+          .send({ message: `The field ${key} shouldn't be empty` });
+
+      if (foundCollection.additionalFields[key]["isOneString"]) {
+        const isError = validOneString(additionalFields[key]["value"], key);
+        if (isError) errors.push(isError);
+      }
+
+      if (
+        typeof additionalFields[key]["value"] ===
+        foundCollection.additionalFields[key]["type"]
+      )
+        updatedAdditionalFields[key] = additionalFields[key];
+      else if (
+        foundCollection.additionalFields[key]["type"] === "date" &&
+        typeof additionalFields[key]["value"] === "number"
+      )
+        updatedAdditionalFields[key] = additionalFields[key];
+      else errors.push(`Wrong type of field ${key} or the field is empty`);
     }
+
     if (errors.length) return res.status(400).send({ message: errors });
 
     const wholeItemInfo = {
@@ -108,6 +138,7 @@ exports.create = async (req, res) => {
 
     return res.send(newItem);
   } catch (e) {
+    console.log("e: ", e);
     await session.abortTransaction();
     if (e.message === "tagsError")
       return res
@@ -128,12 +159,14 @@ exports.create = async (req, res) => {
 };
 
 exports.delete = async (req, res) => {
-  const conn = mongoose.connection;
-  const session = await conn.startSession();
+  const session = await CONN.startSession();
   try {
     session.startTransaction();
     const { idsToDelete } = req.body;
-    const {tags, collectionsToUpdate} = await countTagsAndCollections(idsToDelete, session);
+    const { tags, collectionsToUpdate } = await countTagsAndCollections(
+      idsToDelete,
+      session
+    );
 
     const updateOperations = Object.keys(collectionsToUpdate).map(
       (collectionName) => ({
@@ -155,11 +188,9 @@ exports.delete = async (req, res) => {
     if (!deletedCount)
       return res.status(404).send({ message: "Item is not found" });
 
-
     await session.commitTransaction();
     return res.send({ message: "Item successfully deleted" });
   } catch (e) {
-    console.log(e);
     await session.abortTransaction();
     if (e.message === "tagsError")
       return res
@@ -174,59 +205,46 @@ exports.delete = async (req, res) => {
 };
 
 exports.update = async (req, res) => {
-  const conn = mongoose.connection;
-  const session = await conn.startSession();
+  const session = await CONN.startSession();
   try {
     session.startTransaction();
     let { tags, collectionName } = req.body;
     let trimmedValues = toTrim(req.body);
     const { additionalFields } = trimmedValues;
-    const itemId = req.params.id;
-    const itemToUpdate = await UserItem.findOne({ _id: itemId }, null, {
-      session,
-    });
+    const itemToUpdate = await UserItem.findOne({ _id: req.params.id });
 
-    const errors = [];
     if (!itemToUpdate) {
       return res.status(404).send({ message: "Item is not found" });
     }
     if (collectionName)
-      return res.status(404).send({ message: "Collection should not be changed" });
+      return res
+        .status(404)
+        .send({ message: "Collection should not be changed" });
 
-    const foundCollection = await UserCollection.findOne(
-      {
-        name: itemToUpdate.collectionName,
-      },
-      null,
-      { session }
-    );
+    const foundCollection = await UserCollection.findOne({
+      name: itemToUpdate.collectionName,
+    });
 
     if (!foundCollection) {
       return res.status(404).send({ message: "Collection is not found" });
     }
 
-    const updatedAdditionalFields = {};
-    for (const key in additionalFields) {
-      if (itemToUpdate.additionalFields.hasOwnProperty(key)) {
-        if (foundCollection.additionalFields[key]["isOneString"])
-          validOneString(additionalFields[key]["value"], errors);
-        if (
-          typeof additionalFields[key]["value"] ===
-          foundCollection.additionalFields[key]["type"]
-        )
-          updatedAdditionalFields[key] = additionalFields[key];
-        else errors.push(`Wrong type of field ${key}`);
-      }
-    }
-
+    const { updatedAdditionalFields, errors } = getUpdatedAdditionalFields(
+      additionalFields,
+      itemToUpdate,
+      foundCollection
+    );
     if (errors.length) return res.status(400).send({ message: errors });
 
     if (tags) {
       const oldTags = itemToUpdate["tags"];
       const trimmedTags = removeLeadingHashes(tags);
-      trimmedValues = { ...trimmedValues, tags:trimmedTags };
-      const { toAdd, toRemove } = compareTags(oldTags, trimmedTags);
-      await changeTagCounts(toAdd, toRemove, session);
+      trimmedValues = { ...trimmedValues, tags: trimmedTags };
+      const { tagsToIncrement, tagsToDecrement } = compareTags(
+        oldTags,
+        trimmedTags
+      );
+      await changeTagCounts(tagsToIncrement, tagsToDecrement, session);
     }
 
     const allItemData = {
@@ -240,10 +258,10 @@ exports.update = async (req, res) => {
     Object.assign(itemToUpdate, allItemData);
     itemToUpdate.markModified("additionalFields");
     await itemToUpdate.save({ session });
+
     await session.commitTransaction();
     return res.send({ message: "Item successfully updated" });
   } catch (e) {
-    console.log(e);
     await session.abortTransaction();
     return res.status(400).send({
       message: "Something went wrong while updating the item",
