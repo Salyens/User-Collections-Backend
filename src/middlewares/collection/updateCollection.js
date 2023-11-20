@@ -11,7 +11,7 @@ const updateCollection = async (req, res, next) => {
     fieldsWithoutAdditionalFields,
     "type"
   );
-  if (errors.length) return res.status(400).send({ errors });
+  if (errors.length) return res.status(400).send({ message: errors });
   return next();
 };
 
