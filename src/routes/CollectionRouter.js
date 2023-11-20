@@ -10,7 +10,6 @@ router
   .post([verifyToken, createCollection], CollectionController.create);
 
 router.get("/me", [verifyToken], CollectionController.getAllCollections);
-// router.get("/:collectionName", CollectionController.getOneCollection);
 
 router
   .route("/:collectionName")
