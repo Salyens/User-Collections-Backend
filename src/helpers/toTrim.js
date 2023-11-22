@@ -1,3 +1,5 @@
+const cleanHtml = require("./cleanHTML");
+
 const toTrim = (obj) => {
   return Object.keys(obj).reduce((acc, key) => {
     const trimmedKey = key.trim();
@@ -6,6 +8,9 @@ const toTrim = (obj) => {
     if (typeof value === "string") value = value.trim();
     else if (typeof value === "object" && value !== null) value = toTrim(value);
 
+    if (key === "description") {
+      value = cleanHtml(value)
+    }
     acc[trimmedKey] = value;
     return acc;
   }, {});

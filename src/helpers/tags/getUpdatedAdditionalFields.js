@@ -7,6 +7,10 @@ const getUpdatedAdditionalFields = (additionalFields, itemToUpdate, foundCollect
     const collectionField = foundCollection.additionalFields[key];
     const fieldExists = itemToUpdate.additionalFields.hasOwnProperty(key);
     const isCorrectType = collectionField && typeof value.value === collectionField.type;
+    console.log('collectionField.type: ', collectionField.type);
+    console.log('typeof value.value: ', typeof value.value);
+
+    console.log('isCorrectType: ', isCorrectType);
     const isOneString = collectionField && collectionField.isOneString;
 
     const error = isOneString ? validOneString(value.value, key) : (!isCorrectType && `Wrong type of field ${key}`);

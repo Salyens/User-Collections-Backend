@@ -25,12 +25,19 @@ const getValueByPath = (obj, path) => {
 const createFieldValidations = (reqBody, fields, value) => {
   const fieldChecks = fields.map((field) => {
     const fieldParts = field.split(".");
-    let additionalField = fieldParts.length === 3 ? fieldParts[1] : field;
+
     const fieldValue = getValueByPath(reqBody, field);
 
     const checkField = check(field)
       .notEmpty()
-      .withMessage(`The field '${additionalField}' shouldn't be empty`)
+      .withMessage(`The field '${field}' shouldn't be empty`)
+      .custom(value => {
+
+        if (field !== 'description' && /<[a-z][\s\S]*>/i.test(value)) {
+          return Promise.reject(`HTML tags are not allowed in '${field}'`);
+        }
+        return true;
+      })
       .custom(() => {
         if (
           fieldParts[0] === "additionalFields" &&
@@ -41,7 +48,7 @@ const createFieldValidations = (reqBody, fields, value) => {
           fieldValue !== "date"
         ) {
           return Promise.reject(
-            `The type of field '${additionalField}' is invalid`
+            `The type of field '${field}' is invalid`
           );
         }
         return true;
@@ -54,5 +61,7 @@ const createFieldValidations = (reqBody, fields, value) => {
 
   return [...fieldChecks];
 };
+
+
 
 module.exports = validateRequestData;

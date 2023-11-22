@@ -2,6 +2,7 @@ const { default: mongoose } = require("mongoose");
 const { UserCollection } = require("../models/UserCollection");
 const { UserItem } = require("../models/UserItem");
 const { toTrim } = require("../helpers");
+const decodeHTML = require("../helpers/decodeHTML");
 const CONN = mongoose.connection;
 
 exports.getAllCollections = async (req, res) => {
@@ -22,9 +23,9 @@ exports.getAllCollections = async (req, res) => {
       .limit(limit)
       .sort({ [sortBy]: [sortDir] });
     const total = await UserCollection.countDocuments(query);
-
+    const decodedCollections = decodeHTML(allCollections);
     return res.send({
-      collections: allCollections,
+      collections: decodedCollections,
       total,
     });
   } catch (e) {
@@ -38,11 +39,12 @@ exports.getOneCollection = async (req, res) => {
   try {
     const { collectionName } = req.params;
     const oneCollection = await UserCollection.find({ name: collectionName });
-    return res.send(oneCollection);
+    const decodedCollection = decodeHTML(oneCollection);
+    return res.send(decodedCollection);
   } catch (_) {
     return res
       .status(400)
-      .send({ message: "Something went wrong while getting all collections" });
+      .send({ message: "Something went wrong while getting one collections" });
   }
 };
 
@@ -54,8 +56,11 @@ exports.create = async (req, res) => {
       ...trimmedValues,
       user: { _id, name: userName },
     });
-    return res.send(newCollection);
+    const decodedCollection = decodeHTML(newCollection);
+    console.log('decodedCollection: ', decodedCollection);
+    return res.send(decodedCollection);
   } catch (e) {
+    console.log(e);
     if (e.code === 11000) {
       return res.status(400).send({
         message:

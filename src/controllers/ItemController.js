@@ -159,6 +159,7 @@ exports.create = async (req, res) => {
 };
 
 exports.delete = async (req, res) => {
+  console.log(req.body);
   const session = await CONN.startSession();
   try {
     session.startTransaction();
@@ -205,6 +206,7 @@ exports.delete = async (req, res) => {
 };
 
 exports.update = async (req, res) => {
+  console.log('req: ', req.body);
   const session = await CONN.startSession();
   try {
     session.startTransaction();
@@ -262,6 +264,7 @@ exports.update = async (req, res) => {
     await session.commitTransaction();
     return res.send({ message: "Item successfully updated" });
   } catch (e) {
+    console.log('e: ', e);
     await session.abortTransaction();
     return res.status(400).send({
       message: "Something went wrong while updating the item",
