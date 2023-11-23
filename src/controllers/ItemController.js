@@ -14,12 +14,20 @@ const CONN = mongoose.connection;
 
 exports.getAllItems = async (req, res) => {
   try {
-    const { searchText } = req.query;
-    const { page = 1, limit = 10, sortBy = "_id", sortDir = -1 } = req.query;
+    const {
+      page = 1,
+      limit = 10,
+      sortBy = "_id",
+      sortDir = -1,
+      searchText,
+      collectionName = null,
+    } = req.query;
     const pageChunk = (+page - 1) * +limit;
 
     const matchStage = searchText
       ? { $match: { $text: { $search: `"${searchText}"` } } }
+      : collectionName
+      ? { $match: { collectionName } }
       : { $match: {} };
 
     const aggregationPipeline = [
@@ -63,6 +71,18 @@ exports.getAllItems = async (req, res) => {
     return res
       .status(400)
       .send({ message: "Something went wrong while getting the items" });
+  }
+};
+
+exports.getOneItem = async (req, res) => {
+  try {
+    const { itemName } = req.params;
+    const userItem = await UserItem.find({ name: itemName });
+    return res.send(userItem);
+  } catch (_) {
+    return res
+      .status(400)
+      .send({ message: "Something went wrong while getting all collections" });
   }
 };
 
@@ -138,7 +158,6 @@ exports.create = async (req, res) => {
 
     return res.send(newItem);
   } catch (e) {
-    console.log("e: ", e);
     await session.abortTransaction();
     if (e.message === "tagsError")
       return res
@@ -206,7 +225,7 @@ exports.delete = async (req, res) => {
 };
 
 exports.update = async (req, res) => {
-  console.log('req: ', req.body);
+  console.log("req: ", req.body);
   const session = await CONN.startSession();
   try {
     session.startTransaction();
@@ -264,7 +283,12 @@ exports.update = async (req, res) => {
     await session.commitTransaction();
     return res.send({ message: "Item successfully updated" });
   } catch (e) {
-    console.log('e: ', e);
+    if (e.code === 11000) {
+      return res.status(400).send({
+        message:
+          "An item with this name already exists. Please choose another name.",
+      });
+    }
     await session.abortTransaction();
     return res.status(400).send({
       message: "Something went wrong while updating the item",

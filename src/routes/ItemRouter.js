@@ -16,6 +16,9 @@ router
 router.get("/by-collection/:collectionName", ItemController.getUserItems);
 
 router
+  .get("/:itemName", ItemController.getOneItem)
+
+router
   .route("/:id")
   .patch([verifyToken, updateItem, updateTags], ItemController.update);
 
