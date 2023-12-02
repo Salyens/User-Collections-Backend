@@ -13,7 +13,7 @@ router
   .post([verifyToken, createItem, createTags], ItemController.create)
   .delete([verifyToken], ItemController.delete);
 
-router.get("/by-collection/:collectionName", ItemController.getUserItems);
+router.get("/by-collection/:collectionName", ItemController.getAllItems);
 
 router
   .get("/:itemName", ItemController.getOneItem)

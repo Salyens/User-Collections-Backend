@@ -57,10 +57,9 @@ exports.create = async (req, res) => {
       user: { _id, name: userName },
     });
     const decodedCollection = decodeHTML(newCollection);
-    console.log('decodedCollection: ', decodedCollection);
+
     return res.send(decodedCollection);
   } catch (e) {
-    console.log(e);
     if (e.code === 11000) {
       return res.status(400).send({
         message:

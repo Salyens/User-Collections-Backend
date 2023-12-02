@@ -178,7 +178,7 @@ exports.create = async (req, res) => {
 };
 
 exports.delete = async (req, res) => {
-  console.log(req.body);
+
   const session = await CONN.startSession();
   try {
     session.startTransaction();
@@ -225,7 +225,7 @@ exports.delete = async (req, res) => {
 };
 
 exports.update = async (req, res) => {
-  console.log("req: ", req.body);
+
   const session = await CONN.startSession();
   try {
     session.startTransaction();
