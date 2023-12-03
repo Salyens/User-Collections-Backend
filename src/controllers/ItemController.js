@@ -20,10 +20,11 @@ exports.getAllItems = async (req, res) => {
       sortBy = "_id",
       sortDir = -1,
       searchText,
+     
       collectionName = null,
     } = req.query;
     const pageChunk = (+page - 1) * +limit;
-
+    console.log('searchText', searchText);
     const matchStage = searchText
       ? { $match: { $text: { $search: `"${searchText}"` } } }
       : collectionName
