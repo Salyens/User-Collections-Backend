@@ -24,7 +24,7 @@ exports.getAllItems = async (req, res) => {
       collectionName = null,
     } = req.query;
     const pageChunk = (+page - 1) * +limit;
-    console.log('searchText', searchText);
+
     const matchStage = searchText
       ? { $match: { $text: { $search: `"${searchText}"` } } }
       : collectionName
@@ -63,6 +63,8 @@ exports.getAllItems = async (req, res) => {
 
     const results = await UserItem.aggregate(aggregationPipeline);
 
+
+    
     return res.send(
       results[0]
         ? { userItems: results[0].userItems, total: results[0].total }
@@ -100,6 +102,7 @@ exports.getUserItems = async (req, res) => {
 };
 
 exports.create = async (req, res) => {
+  console.log('req.files: ', req.files);
   const session = await CONN.startSession();
   try {
     session.startTransaction();

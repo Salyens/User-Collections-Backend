@@ -3,11 +3,33 @@ const CollectionController = require("../controllers/CollectionController");
 const { verifyToken } = require("../middlewares/auth");
 const { createCollection } = require("../middlewares/collection");
 const { updateCollection } = require("../middlewares/collection");
+const multer = require("multer");
+const multerErrorHandler = require("../middlewares/collection/multerErrorHandler");
+const storage = multer.diskStorage({
+  destination: function (req, file, cb) {
+    cb(null, "uploads/");
+  },
+  filename: function (req, file, cb) {
+    cb(null, Date.now() + "-" + file.originalname);
+  },
+});
+const upload = multer({
+  storage: storage,
+  limits: { fileSize: 1024 * 1024 },
+});
 
 router
   .route("/")
   .get(CollectionController.getAllCollections)
-  .post([verifyToken, createCollection], CollectionController.create);
+  .post(
+    [
+      verifyToken,
+      upload.single("imgURL"),
+      multerErrorHandler,
+      createCollection,
+    ],
+    CollectionController.create
+  );
 
 router.get("/me", [verifyToken], CollectionController.getAllCollections);
 
@@ -18,7 +40,9 @@ router
 
 router
   .route("/:id")
-
-  .patch([verifyToken, updateCollection], CollectionController.update);
+  .patch(
+    [verifyToken, upload.single("imgURL"), multerErrorHandler, updateCollection],
+    CollectionController.update
+  );
 
 module.exports = router;

@@ -1,4 +1,4 @@
-const incrementTagCount = (tagsToIncrement, doc) => {
+const incrementTagCount = (tagsToIncrement, doc, param) => {
   doc.tags = doc.tags ?? {};
   tagsToIncrement &&
     tagsToIncrement.forEach((tag) => {
