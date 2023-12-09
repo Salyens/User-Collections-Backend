@@ -102,7 +102,6 @@ exports.getUserItems = async (req, res) => {
 };
 
 exports.create = async (req, res) => {
-  console.log('req.files: ', req.files);
   const session = await CONN.startSession();
   try {
     session.startTransaction();

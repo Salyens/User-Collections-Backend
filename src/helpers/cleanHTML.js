@@ -7,6 +7,7 @@ const cleanHtml = (html) => {
     exclusiveFilter: function (frame) {
       return frame.tag === "script";
     },
+    allowVulnerableTags: true,
   });
 
   return clean;
