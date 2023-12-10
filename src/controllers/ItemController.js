@@ -10,6 +10,7 @@ const toTrim = require("../helpers/toTrim");
 const validOneString = require("../helpers/validOneString");
 const countTagsAndCollections = require("../helpers/tags/countTagsAndCollections");
 const getUpdatedAdditionalFields = require("../helpers/tags/getUpdatedAdditionalFields");
+const incrementTagCountBySearch = require("../helpers/tags/incrementTagCountBySearch");
 const CONN = mongoose.connection;
 
 exports.getAllItems = async (req, res) => {
@@ -20,7 +21,6 @@ exports.getAllItems = async (req, res) => {
       sortBy = "_id",
       sortDir = -1,
       searchText,
-     
       collectionName = null,
     } = req.query;
     const pageChunk = (+page - 1) * +limit;
@@ -60,11 +60,14 @@ exports.getAllItems = async (req, res) => {
         },
       },
     ];
-
     const results = await UserItem.aggregate(aggregationPipeline);
 
 
-    
+
+    if (searchText) {
+      incrementTagCountBySearch(searchText);
+    }
+
     return res.send(
       results[0]
         ? { userItems: results[0].userItems, total: results[0].total }
@@ -181,7 +184,6 @@ exports.create = async (req, res) => {
 };
 
 exports.delete = async (req, res) => {
-
   const session = await CONN.startSession();
   try {
     session.startTransaction();
@@ -228,7 +230,6 @@ exports.delete = async (req, res) => {
 };
 
 exports.update = async (req, res) => {
-
   const session = await CONN.startSession();
   try {
     session.startTransaction();

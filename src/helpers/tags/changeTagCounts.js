@@ -10,7 +10,7 @@ const changeTagCounts = async (tagsToIncrement, tagsToDecrement, session) => {
       await doc.save({ session });
     }
 
-    incrementTagCount(tagsToIncrement, doc);
+    incrementTagCount(tagsToIncrement, doc, "itemCount");
     decrementTagCount(tagsToDecrement, doc);
 
     doc.markModified("tags");

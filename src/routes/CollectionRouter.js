@@ -31,7 +31,7 @@ router
     CollectionController.create
   );
 
-router.get("/me", [verifyToken], CollectionController.getAllCollections);
+router.get("/my", [verifyToken], CollectionController.getAllCollections);
 
 router
   .route("/:collectionName")

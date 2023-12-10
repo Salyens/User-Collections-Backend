@@ -51,7 +51,8 @@ exports.getOneCollection = async (req, res) => {
     const { collectionName } = req.params;
     const oneCollection = await UserCollection.find({ name: collectionName });
     const decodedCollection = decodeHTML(oneCollection);
-    if (decodedCollection[0].imgURL) {
+
+    if (decodedCollection.length && decodedCollection[0].imgURL) {
       decodedCollection[0].imgURL = await getSignedImageUrl(
         decodedCollection[0].imgURL
       );

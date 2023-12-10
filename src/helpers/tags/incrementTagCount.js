@@ -3,7 +3,7 @@ const incrementTagCount = (tagsToIncrement, doc, param) => {
   tagsToIncrement &&
     tagsToIncrement.forEach((tag) => {
       doc.tags[tag] = doc.tags[tag] ?? { itemCount: 0, mentionCount: 0 };
-      doc.tags[tag].itemCount++;
+      doc.tags[tag][param]++;
     });
   return doc;
 };
