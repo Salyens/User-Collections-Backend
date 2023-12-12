@@ -6,7 +6,7 @@ const { default: mongoose } = require("mongoose");
 exports.getAllUsers = async (req, res) => {
   try {
     const users = await User.find().sort({ role: 1 });
-    return res.send({ users });
+    return res.send(users);
   } catch (_) {
     return res.status(400).send({ message: "Something went wrong" });
   }
@@ -48,10 +48,10 @@ exports.registration = async (req, res) => {
   try {
     const password = bcrypt.hashSync(req.body.password, +process.env.SALT);
     const { email, name, role } = req.body;
-
     const newUser = await User.create({ ...req.body, password });
     const accessToken = generateToken(
       { email, _id: newUser._id, name, role },
+
       "24h"
     );
     return res.send({ accessToken });
@@ -67,25 +67,44 @@ exports.registration = async (req, res) => {
 
 exports.update = async (req, res) => {
   try {
-    const { blockStatus, role: userRole, ids } = req.body;
-    const updateUsers = async (field, value) => {
-      await User.updateMany(
-        {
-          _id: { $in: ids },
-        },
-        { $set: { [field]: value } }
-      );
-    };
+    const { blockStatus, ids } = req.body;
+    const { role: userRole } = req.user;
+    if (userRole !== "admin" && userRole !== "root") {
+      return res
+        .status(403)
+        .send({
+          message:
+            "Access denied. You must have admin or root privileges to view this page.",
+        });
+    }
 
-    if (blockStatus) updateUsers("status", true);
-    else if ("blockStatus" in req.body && !blockStatus)
-      updateUsers("status", false);
+    const usersToUpdate = await User.find({
+      _id: { $in: ids },
+    });
 
-    if (userRole === "admin" || userRole === "user")
-      updateUsers("role", userRole);
-    else return res.send({ message: "Invalid role" });
+    const finalListToDelete = usersToUpdate
+      .filter((user) => user.role !== userRole && user.role !== "root")
+      .map((user) => user._id);
 
-    return res.send({ message: "Users successfully updated" });
+    if (ids.length !== finalListToDelete.length) {
+      return res.status(404).send({
+        message:
+          "Some users could not be changed due to insufficient permissions or they do not exist.",
+      });
+    }
+
+    await User.updateMany(
+      {
+        _id: { $in: ids },
+      },
+      { $set: { status: blockStatus } }
+    );
+
+    const updatedUsers = await User.find({
+      _id: { $in: ids },
+    });
+
+    return res.send(updatedUsers);
   } catch (_) {
     return res.status(400).send({ message: "Something is wrong" });
   }
@@ -94,12 +113,38 @@ exports.update = async (req, res) => {
 exports.delete = async (req, res) => {
   try {
     const { ids } = req.body;
+    const { role: userRole } = req.user;
+    if (userRole !== "admin" || userRole !== "root") {
+      return res
+        .status(403)
+        .send({
+          message:
+            "Access denied. You must have admin or root privileges to view this page.",
+        });
+    }
 
-    const { deletedCount } = await User.deleteMany({
+    const usersToDelete = await User.find({
       _id: { $in: ids },
     });
-    if (!deletedCount)
-      return res.status(404).send({ message: "Users is not found" });
+
+    const finalListToDelete = usersToDelete
+      .filter((user) => user.role !== userRole && user.role !== "root")
+      .map((user) => user._id);
+
+    if (ids.length !== finalListToDelete.length) {
+      return res.status(404).send({
+        message:
+          "Some users could not be deleted due to insufficient permissions or they do not exist.",
+      });
+    }
+    const { deletedCount } = await User.deleteMany({
+      _id: { $in: finalListToDelete },
+    });
+
+    if (!deletedCount) {
+      return res.send({ message: "Users are not found" });
+    }
+
     return res.send({ message: "Users successfully deleted" });
   } catch (_) {
     return res.status(400).send({ message: "Something is wrong" });

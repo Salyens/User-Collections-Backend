@@ -13,7 +13,7 @@ exports.getAllCollections = async (req, res) => {
   try {
     const { page = 1, limit = 10, sortDir = -1 } = req.query;
     const pageChunk = (page - 1) * limit;
-    const isMeEndpoint = req.path.includes("/me");
+    const isMeEndpoint = req.path.includes("/my");
     const userId = isMeEndpoint && req.user ? req.user._id : null;
     const query = userId ? { "user._id": userId } : {};
 
