@@ -47,10 +47,10 @@ exports.login = async (req, res) => {
 exports.registration = async (req, res) => {
   try {
     const password = bcrypt.hashSync(req.body.password, +process.env.SALT);
-    const { email, name, role } = req.body;
+    const { email, name } = req.body;
     const newUser = await User.create({ ...req.body, password });
     const accessToken = generateToken(
-      { email, _id: newUser._id, name, role },
+      { email, _id: newUser._id, name, role:"user" },
 
       "24h"
     );
