@@ -114,7 +114,7 @@ exports.delete = async (req, res) => {
   try {
     const { ids } = req.body;
     const { role: userRole } = req.user;
-    if (userRole !== "admin" || userRole !== "root") {
+    if (userRole !== "admin" && userRole !== "root") {
       return res
         .status(403)
         .send({

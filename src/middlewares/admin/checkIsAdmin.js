@@ -1,6 +1,6 @@
 const checkIsAdmin = (req, res, next) => {
   const { role } = req.user;
-  if (role !== "admin")
+  if (role !== "admin" && role !== "root")
     return res
       .status(400)
       .send({ message: "You do not have permission to view this page." });
