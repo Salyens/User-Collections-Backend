@@ -40,7 +40,7 @@ exports.getAllCollections = async (req, res) => {
       collections: updatedCollections,
       total,
     });
-  } catch (e) {
+  } catch (_) {
     return res
       .status(400)
       .send({ message: "Something went wrong while getting all collections" });
@@ -60,8 +60,7 @@ exports.getOneCollection = async (req, res) => {
     }
 
     return res.send(decodedCollection);
-  } catch (e) {
-    console.log("e: ", e);
+  } catch (_) {
     return res
       .status(400)
       .send({ message: "Something went wrong while getting one collections" });
@@ -72,9 +71,7 @@ exports.create = async (req, res) => {
   try {
     const { _id, name: userName } = req.user;
     const trimmedValues = toTrim(req.body);
-    // console.log("req.file: ", req.file);
     const response = await uploadFile(req.file);
-
     if (response) await unlinkFile(req.file.path);
 
     const newCollection = await UserCollection.create({
@@ -85,8 +82,7 @@ exports.create = async (req, res) => {
 
     const decodedCollection = decodeHTML(newCollection);
     return res.send(decodedCollection);
-  } catch (e) {
-    console.log("e: ", e);
+  } catch (_) {
     if (e.code === 11000) {
       return res.status(400).send({
         message:
@@ -154,8 +150,7 @@ exports.update = async (req, res) => {
 
     await session.commitTransaction();
     return res.send(decodedCollection);
-  } catch (e) {
-    console.log("e: ", e);
+  } catch (_) {
     await session.abortTransaction();
     if (e.code === 11000) {
       return res.status(400).send({
