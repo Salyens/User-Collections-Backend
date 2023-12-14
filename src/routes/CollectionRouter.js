@@ -5,6 +5,9 @@ const { createCollection } = require("../middlewares/collection");
 const { updateCollection } = require("../middlewares/collection");
 const multer = require("multer");
 const multerErrorHandler = require("../middlewares/collection/multerErrorHandler");
+
+
+
 const storage = multer.diskStorage({
   destination: function (req, file, cb) {
     cb(null, "uploads/");

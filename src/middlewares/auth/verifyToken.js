@@ -1,9 +1,22 @@
 const jwt = require("jsonwebtoken");
 
+const fs = require("fs");
+const path = require("path");
+
 const verifyToken = (req, res, next) => {
+  const uploadDir = path.join(__dirname, "uploads");
+  console.log("uploadDir: ", uploadDir);
+
+  if (!fs.existsSync(uploadDir)) {
+    console.log("Creating uploads directory...");
+    fs.mkdirSync(uploadDir, { recursive: true });
+  } else {
+    console.log("Uploads directory already exists.");
+  }
+
   const { headers } = req;
   if (!headers.authorization)
-    return res.status(401).send({ message: "Unauthorized" });  
+    return res.status(401).send({ message: "Unauthorized" });
 
   const [type, token] = headers.authorization.split(" ");
   if (type !== "Bearer" || !token)
