@@ -48,6 +48,7 @@ router
   .patch(
     [
       verifyToken,
+      checkUploadFolder,
       upload.single("imgURL"),
       multerErrorHandler,
       updateCollection,
