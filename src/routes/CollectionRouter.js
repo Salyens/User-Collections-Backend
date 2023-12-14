@@ -6,6 +6,7 @@ const { updateCollection } = require("../middlewares/collection");
 const multer = require("multer");
 const multerErrorHandler = require("../middlewares/collection/multerErrorHandler");
 const path = require("path");
+const checkUploadFolder = require("../middlewares/collection/checkUploadFolder");
 
 const storage = multer.diskStorage({
   destination: function (req, file, cb) {
@@ -27,6 +28,7 @@ router
   .post(
     [
       verifyToken,
+      checkUploadFolder,
       upload.single("imgURL"),
       multerErrorHandler,
       createCollection,
