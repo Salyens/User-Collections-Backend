@@ -72,8 +72,10 @@ exports.create = async (req, res) => {
   try {
     const { _id, name: userName } = req.user;
     const trimmedValues = toTrim(req.body);
+    console.log("req.file: ", req.file);
     const response = await uploadFile(req.file);
-    console.log('response: ', response);
+
+    console.log("response: ", response);
     if (response) await unlinkFile(req.file.path);
 
     const newCollection = await UserCollection.create({
