@@ -28,6 +28,7 @@ exports.getAllCollections = async (req, res) => {
     const updatedCollections = await Promise.all(
       decodedCollections.map(async (collection) => {
         const plainObject = collection.toObject();
+
         if (plainObject.imgURL) {
           plainObject.imgURL = await getSignedImageUrl(plainObject.imgURL);
         }
@@ -72,6 +73,7 @@ exports.create = async (req, res) => {
     const { _id, name: userName } = req.user;
     const trimmedValues = toTrim(req.body);
     const response = await uploadFile(req.file);
+    console.log('response: ', response);
     if (response) await unlinkFile(req.file.path);
 
     const newCollection = await UserCollection.create({
