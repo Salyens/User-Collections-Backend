@@ -4,7 +4,7 @@ const fs = require("fs");
 const path = require("path");
 
 const verifyToken = (req, res, next) => {
-  const uploadDir = path.join(__dirname, "uploads");
+  const uploadDir = path.join(process.cwd(), 'src', 'uploads');
   console.log("uploadDir: ", uploadDir);
 
   if (!fs.existsSync(uploadDir)) {
