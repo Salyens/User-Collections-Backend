@@ -82,7 +82,7 @@ exports.create = async (req, res) => {
 
     const decodedCollection = decodeHTML(newCollection);
     return res.send(decodedCollection);
-  } catch (_) {
+  } catch (e) {
     if (e.code === 11000) {
       return res.status(400).send({
         message:
@@ -150,7 +150,7 @@ exports.update = async (req, res) => {
 
     await session.commitTransaction();
     return res.send(decodedCollection);
-  } catch (_) {
+  } catch (e) {
     await session.abortTransaction();
     if (e.code === 11000) {
       return res.status(400).send({

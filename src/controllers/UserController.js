@@ -23,6 +23,13 @@ exports.login = async (req, res) => {
     if (!passwordMatch)
       return res.status(401).send({ message: "Invalid email or password" });
 
+    if (foundUser.status) {
+      return res.status(403).send({
+        message:
+          "Your access is temporarily restricted. Please contact support for further details.",
+      });
+    }
+
     await User.updateOne({ email }, { lastLogin: Date.now() });
 
     const accessToken = generateToken(
@@ -50,7 +57,7 @@ exports.registration = async (req, res) => {
     const { email, name } = req.body;
     const newUser = await User.create({ ...req.body, password });
     const accessToken = generateToken(
-      { email, _id: newUser._id, name, role:"user" },
+      { email, _id: newUser._id, name, role: "user" },
 
       "24h"
     );
@@ -70,12 +77,10 @@ exports.update = async (req, res) => {
     const { blockStatus, ids } = req.body;
     const { role: userRole } = req.user;
     if (userRole !== "admin" && userRole !== "root") {
-      return res
-        .status(403)
-        .send({
-          message:
-            "Access denied. You must have admin or root privileges to view this page.",
-        });
+      return res.status(403).send({
+        message:
+          "Access denied. You must have admin or root privileges to view this page.",
+      });
     }
 
     const usersToUpdate = await User.find({
@@ -115,12 +120,10 @@ exports.delete = async (req, res) => {
     const { ids } = req.body;
     const { role: userRole } = req.user;
     if (userRole !== "admin" && userRole !== "root") {
-      return res
-        .status(403)
-        .send({
-          message:
-            "Access denied. You must have admin or root privileges to view this page.",
-        });
+      return res.status(403).send({
+        message:
+          "Access denied. You must have admin or root privileges to view this page.",
+      });
     }
 
     const usersToDelete = await User.find({
