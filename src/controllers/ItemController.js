@@ -62,8 +62,6 @@ exports.getAllItems = async (req, res) => {
     ];
     const results = await UserItem.aggregate(aggregationPipeline);
 
-
-
     if (searchText) {
       incrementTagCountBySearch(searchText);
     }
@@ -73,7 +71,7 @@ exports.getAllItems = async (req, res) => {
         ? { userItems: results[0].userItems, total: results[0].total }
         : { userItems: [], total: 0 }
     );
-  } catch (e) {
+  } catch (_) {
     return res
       .status(400)
       .send({ message: "Something went wrong while getting the items" });
