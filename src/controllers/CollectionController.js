@@ -151,6 +151,7 @@ exports.update = async (req, res) => {
     await session.commitTransaction();
     return res.send(decodedCollection);
   } catch (e) {
+    console.log('e: ', e);
     await session.abortTransaction();
     if (e.code === 11000) {
       return res.status(400).send({

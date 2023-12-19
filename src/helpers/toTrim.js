@@ -5,15 +5,20 @@ const toTrim = (obj) => {
     const trimmedKey = key.trim();
     let value = obj[key];
 
-    if (typeof value === "string") value = value.trim();
-    else if (typeof value === "object" && value !== null) value = toTrim(value);
-
-    if (key === "description") {
-      value = cleanHtml(value)
+    if (typeof value === 'string') {
+      value = value.trim();
+      if (key !== 'imgURL') {
+        value = cleanHtml(value);
+      }
     }
+    else if (typeof value === 'object' && value !== null) {
+      value = toTrim(value);
+    }
+
     acc[trimmedKey] = value;
     return acc;
   }, {});
 };
 
 module.exports = toTrim;
+
